@@ -53,6 +53,7 @@
 #include "if_ath_sdio.h"
 
 #define NBUF_ALLOC_FAIL_WAIT_TIME 100
+#define MAX_CREDIT_SIZE 2304
 
 static void HIFDevDumpRegisters(HIF_SDIO_DEVICE *pDev,
         MBOX_IRQ_PROC_REGISTERS *pIrqProcRegs,
@@ -869,14 +870,15 @@ int rx_completion_task(void *param)
     A_UINT8 nextIsSingle = 0;
     A_UINT16 curPayloadLen = 0;
     A_STATUS status = A_OK;
+	int rx_buf_size;
 
     device = (HIF_SDIO_DEVICE *)param;
     target = (HTC_TARGET *)device->pTarget;
     AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: rx completion task\n"));
-
+#if 0
     set_current_state(TASK_INTERRUPTIBLE);
     vos_set_cpus_allowed_ptr(current, 1);
-
+#endif
     while (!device->pRecvTask->rx_completion_shutdown) {
         if (down_interruptible(&device->pRecvTask->sem_rx_completion) != 0) {
                 AR_DEBUG_PRINTF(ATH_DEBUG_ERROR,
@@ -1015,7 +1017,10 @@ int rx_completion_task(void *param)
         //alloc skb for next bundle
         adf_os_spin_lock_irqsave(&device->pRecvTask->rx_alloc_lock);
         while(HTC_PACKET_QUEUE_DEPTH(&device->pRecvTask->rxAllocQueue) < 64) {
-            pPacket = HIFDevAllocRxBuffer(device, target->TargetCreditSize);
+            //pPacket = HIFDevAllocRxBuffer(device, target->TargetCreditSize);
+            rx_buf_size = (target->TargetCreditSize == 0) ? MAX_CREDIT_SIZE:
+                (target->TargetCreditSize + HIF_MBOX_BLOCK_SIZE);
+            pPacket = HIFDevAllocRxBuffer(device, rx_buf_size);
             if(pPacket == NULL) {
                 AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Short of mem, alloc failed"));
                 break;

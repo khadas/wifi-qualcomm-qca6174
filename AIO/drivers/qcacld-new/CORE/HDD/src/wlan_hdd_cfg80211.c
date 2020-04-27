@@ -113,6 +113,8 @@
 
 #include "wmi_unified_priv.h"
 
+#define WIPHY_FLAG_DFS_OFFLOAD          BIT(24)
+
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
 #define FREQ_BASE_80211G          (2407)
@@ -864,6 +866,11 @@ struct cfg_hostapd_edca {
 	uint8_t enable;
 };
 
+enum wlan_hdd_vendor_ie_access_policy {
+	WLAN_HDD_VENDOR_IE_ACCESS_NONE = 0,
+	WLAN_HDD_VENDOR_IE_ACCESS_ALLOW_IF_LISTED,
+};
+
 #ifdef WLAN_NL80211_TESTMODE
 enum wlan_hdd_tm_attr
 {
@@ -884,11 +891,6 @@ enum wlan_hdd_tm_cmd
 };
 
 #define WLAN_HDD_TM_DATA_MAX_LEN    5000
-
-enum wlan_hdd_vendor_ie_access_policy {
-	WLAN_HDD_VENDOR_IE_ACCESS_NONE = 0,
-	WLAN_HDD_VENDOR_IE_ACCESS_ALLOW_IF_LISTED,
-};
 
 static const struct nla_policy wlan_hdd_tm_policy[WLAN_HDD_TM_ATTR_MAX + 1] =
 {
@@ -21753,6 +21755,7 @@ wlan_hdd_cfg80211_inform_bss_frame_data(struct wiphy *wiphy,
 		uint64_t boottime_ns)
 {
 	struct cfg80211_bss *bss_status  = NULL;
+#if 1
 	struct cfg80211_inform_bss data  = {0};
 
 	data.chan = chan;
@@ -21760,6 +21763,9 @@ wlan_hdd_cfg80211_inform_bss_frame_data(struct wiphy *wiphy,
 	data.signal = rssi;
 	bss_status = cfg80211_inform_bss_frame_data(wiphy, &data, mgmt,
 						    frame_len, gfp);
+#else
+	bss_status = cfg80211_inform_bss_frame(wiphy, chan, mgmt, frame_len, rssi, gfp);
+#endif
 	return bss_status;
 }
 #else
@@ -27765,13 +27771,15 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
 
 
     sinfo->tx_bytes = pAdapter->stats.tx_bytes;
-
+#if 0
     sinfo->tx_packets =
        pAdapter->hdd_stats.summary_stat.tx_frm_cnt[0] +
        pAdapter->hdd_stats.summary_stat.tx_frm_cnt[1] +
        pAdapter->hdd_stats.summary_stat.tx_frm_cnt[2] +
        pAdapter->hdd_stats.summary_stat.tx_frm_cnt[3];
-
+#else
+	sinfo->tx_packets = pAdapter->stats.tx_packets;
+#endif
     sinfo->tx_retries =
        pAdapter->hdd_stats.summary_stat.multiple_retry_cnt[0] +
        pAdapter->hdd_stats.summary_stat.multiple_retry_cnt[1] +

@@ -18564,10 +18564,18 @@ EXPORT_SYMBOL(hdd_driver_init);
   \return - 0 for success, non zero for failure
 
   --------------------------------------------------------------------------*/
+extern	void sdio_reinit(void);
+extern void extern_wifi_set_enable(int is_on);
 #ifndef FEATURE_LARGE_PREALLOC
 #ifdef MODULE
 static int __init hdd_module_init ( void)
 {
+   extern_wifi_set_enable(0);
+   mdelay(200);
+   extern_wifi_set_enable(1);
+   mdelay(200);
+   sdio_reinit();
+
    return hdd_driver_init();
 }
 #else /* #ifdef MODULE */
@@ -18805,6 +18813,8 @@ EXPORT_SYMBOL(hdd_driver_exit);
 static void __exit hdd_module_exit(void)
 {
    hdd_driver_exit();
+   extern_wifi_set_enable(0);
+   mdelay(200);
 }
 
 #ifdef MODULE

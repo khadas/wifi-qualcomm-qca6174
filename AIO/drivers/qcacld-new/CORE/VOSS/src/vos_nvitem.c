@@ -1543,10 +1543,14 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
             vos_set_cc_source(CNSS_SOURCE_11D);
 
         INIT_COMPLETION(pHddCtx->reg_init);
+#ifdef CONFIG_REGD_HINT_USER
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
         regulatory_hint_user(country_code, NL80211_USER_REG_HINT_USER);
 #else
         regulatory_hint_user(country_code);
+#endif
+#else
+        regulatory_hint(wiphy, country_code);
 #endif
         wait_result = wait_for_completion_interruptible_timeout(
                                &pHddCtx->reg_init,
