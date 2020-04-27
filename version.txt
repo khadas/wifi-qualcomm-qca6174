@@ -1,0 +1,59 @@
+QCA6174A.LEA.3.0 BIT PKG 01.00.028.4
+
+1. Install kernel
+    \\dine\QCT_CNSS\BIT\kernel\kernel_5.4.0+_x64\20200413
+2. Download QCA6174A.LEA.3.0 code
+    git clone ssh://review-android.quicinc.com:29418/qca/third_party/fixce -b QCA6174A.LEA.3.0
+3. Download SDIO source
+    1）cd aio-gen/
+    2）Change build/scripts/re-f30/release.re-f30 
+       IF_TYPE=SDIO
+    3）./aio_gen_bit.sh -r -t re-f30
+   Download USB source
+    1）cd aio-gen/
+    2）Change build/scripts/re-f30/release.re-f30 
+       IF_TYPE=USB
+    3）./aio_gen_bit.sh -r -t re-f30
+   Download PCIE source
+    1）cd aio-gen/
+    2）Change build/scripts/re-f30/release.re-f30 
+       IF_TYPE=PCIE
+    3）./aio_gen_bit.sh -r -t re-f30
+4. Make WLAN drivers
+   1)cd ../AIO/build
+   2)make
+5. Make BT drivers
+   1)cd ../AIO/build
+   2)make patch_BT
+   3)sudo ./scripts/board-type/bt.sh SDIO  --make BT UART
+     sudo ./scripts/board-type/bt.sh USB   --make BT USB
+6. Wlan driver binary is in fixce/AIO/rootfs-re-f30.build/lib/modules/wlan.ko
+   Wlan ini is in fixce/AIO/rootfs-re-f30.build/lib/firmware/wlan/qcom_cfg.ini 
+7. USB driver binary is in 
+   fixce/AIO/apps/bt_workspace/qcom-opensource/bt/bt-app/conf/bt_app.conf
+   fixce/AIO/apps/bt_workspace/system/bt/conf/bt_stack.conf
+   fixce/AIO/apps/bt_workspace/qcom-opensource/bt/bt-app/main/btapp
+   fixce/AIO/apps/bt_workspace/qcom-opensource/bt/property-ops/btproperty
+   fixce/AIO/apps/bt_workspace/system/bt/audio_a2dp_hw/.libs/libaudioa2dpdefault.so*
+   fixce/AIO/apps/bt_workspace/hardware/qcom/bt/libbt-vendor/.libs/libbt-vendor.so* 
+   fixce/AIO/apps/bt_workspace/hardware/libhardware/.libs/libhardware.so*
+   fixce/AIO/apps/bt_workspace/system/bt/main/.libs/libbluetoothdefault.so* 
+   fixce/AIO/apps/bt_workspace/vendor/qcom-proprietary/ship/bt/wcnss_filter/wcnssfilter  (BT USB do not have this file)
+
+Release Information
+
+version:
+WLAN HOST SW:4.5.25.41 FW:2.0.0.40 HW:QCA6174_REV3_2
+
+BTFM FW SU's picked up:
+
+Current CRM ID:BTFM.RM.2.7-00022-QCABTFMSWPZ-1
+
+WLAN Firmware picked up:
+
+Current CRM ID:WLAN.RMLH.1.2-00040-QCARMSWPCIEZ-1 & WLAN.RMLH.1.2-00040-QCARMSWSDIOZ-1
+
+cut-off commit id
+
+3097f79 re-f30: Fix A2DP source playback failure after disconnection
+
