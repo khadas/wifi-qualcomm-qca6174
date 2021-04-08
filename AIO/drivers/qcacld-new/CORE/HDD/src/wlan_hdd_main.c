@@ -12376,12 +12376,23 @@ hdd_adapter_t *hdd_open_adapter(hdd_context_t *hdd_ctx,
 
 	wlan_hdd_set_concurrency_mode(hdd_ctx, session_type);
 
+#if 0
 	/* Initialize the WoWL service */
 	if (!hdd_init_wowl(adapter)) {
 		hddLog(VOS_TRACE_LEVEL_FATAL,
 		       "%s: hdd_init_wowl failed", __func__);
 		goto err_post_add_adapter;
 	}
+#else
+	//Send Mdns pattern to overwite FW default pattern on STA interface only.
+	if (adapter->device_mode == WLAN_HDD_INFRA_STATION) {
+		/* Initialize the WoWL service */
+		if (!hdd_init_wowl(adapter)) {
+		    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_init_wowl failed", __func__);
+		    goto err_post_add_adapter;
+		}
+	}
+#endif
 
 	/* Adapter successfully added. Increment the vdev count  */
 	hdd_ctx->current_intf_count++;
