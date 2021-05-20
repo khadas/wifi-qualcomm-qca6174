@@ -35,7 +35,7 @@ ifneq ($(M),)
 QCACLD := $(subst AIO/build,AIO/drivers/qcacld-new,$(M))
 endif
 
-export MAKEARCH=$(MAKE) M=$(QCACLD)
+export QCACLD
 
 export CONFIG_LINUX_QCMBR=y
 export CONFIG_NON_QC_PLATFORM=y

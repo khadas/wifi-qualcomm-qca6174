@@ -2,7 +2,7 @@ KERNEL_SRC ?= /lib/modules/$(shell uname -r)/build
 M ?= $(shell pwd)
 $(warning build qcacld: M=$(M))
 
-KBUILD_OPTIONS := WLAN_ROOT=$(PWD)
+KBUILD_OPTIONS := WLAN_ROOT=$(shell pwd)
 KBUILD_OPTIONS += MODNAME?=wlan
 
 # Determine if the driver license is Open source or proprietary

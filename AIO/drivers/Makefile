@@ -61,10 +61,10 @@ clean: $(TARGET_CLEAN)
 # qcacld driver build
 #
 qcacld_build:
-	cd ${ATH_QCACLD_TOPDIR} && ${MAKEARCH} KBUILD_EXTRA_SYMBOLS=$(MODULE_SYMBOL_DIR)/Module.symvers $(KBUILD_OPTIONS)
+	+$(MAKE) -C ${ATH_QCACLD_TOPDIR} M=$(QCACLD) KBUILD_EXTRA_SYMBOLS=$(MODULE_SYMBOL_DIR)/Module.symvers $(KBUILD_OPTIONS)
 
 qcacld_clean:
-	cd ${ATH_QCACLD_TOPDIR} && ${MAKEARCH}  clean
+	$(MAKE) -C ${ATH_QCACLD_TOPDIR} M=$(QCACLD) clean
 
 
 firmware_install: 
