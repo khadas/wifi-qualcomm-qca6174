@@ -1599,6 +1599,7 @@ static A_STATUS HIFDevProcessPendingIRQs(HIF_SDIO_DEVICE *pDev, A_BOOL *pDone,
     A_UINT8 host_int_status = 0;
     A_UINT32 lookAhead[MAILBOX_USED_COUNT];
     A_UINT32 lookAhead_part2[MAILBOX_USED_COUNT];
+    A_UINT64 u64lookAhead = 0;
     int i;
 
     A_MEMZERO(&lookAhead, sizeof(lookAhead));
@@ -1667,7 +1668,8 @@ static A_STATUS HIFDevProcessPendingIRQs(HIF_SDIO_DEVICE *pDev, A_BOOL *pDone,
             }
         } /*end of for loop*/
 #ifdef HIF_RX_THREAD
-        if (((HTC_FRAME_HDR *) &lookAhead[0])->EndpointID >= ENDPOINT_MAX) {
+        u64lookAhead = (A_UINT64)(lookAhead[0]);
+        if (((HTC_FRAME_HDR *) &u64lookAhead)->EndpointID >= ENDPOINT_MAX) {
             AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("Endpoint id in register invalid"
                             " %d\n", ((HTC_FRAME_HDR *) &lookAhead[0])->EndpointID));
         }
