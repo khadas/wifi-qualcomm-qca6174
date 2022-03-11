@@ -187,6 +187,7 @@ static struct kparam_string fwpath = {
 };
 
 static char *country_code;
+static char *country_code_default = "CN";
 static int   enable_11d = -1;
 static int   enable_dfs_chan_scan = -1;
 #ifdef FEATURE_LARGE_PREALLOC
@@ -17428,6 +17429,12 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                 __func__);
          goto err_vosclose;
       }
+
+#ifdef CONFIG_YOCTO
+      if (!country_code) {
+         country_code = country_code_default;
+      }
+#endif
 
 #ifdef CLD_REGDB
       if ((wiphy) && country_code) {
