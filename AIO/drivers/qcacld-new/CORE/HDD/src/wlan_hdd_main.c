@@ -187,6 +187,7 @@ static struct kparam_string fwpath = {
 };
 
 static char *country_code;
+static char *ap_name="p2p%d";
 static char *country_code_default = "CN";
 static int   enable_11d = -1;
 static int   enable_dfs_chan_scan = -1;
@@ -17708,7 +17709,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
          }
 
 #ifndef SUPPORT_P2P_BY_ONE_INTF_WLAN
-         pP2pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE, "p2p%d",
+         pP2pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE, ap_name,
 #else
          pP2pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
 #endif
@@ -21219,6 +21220,10 @@ module_param(enable_11d, int,
 
 module_param(country_code, charp,
              S_IRUSR | S_IRGRP | S_IROTH);
+
+module_param(ap_name, charp,
+             S_IRUSR | S_IRGRP | S_IROTH);
+
 #else /* FEATURE_LARGE_PREALLOC */
 
 void register_wlan_module_parameters_callback(int con_mode_set,
