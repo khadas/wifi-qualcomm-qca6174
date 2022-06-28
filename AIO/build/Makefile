@@ -78,6 +78,7 @@ all:
 	@echo KERNEL_ARCH=$(ARCH)
 	@echo CROSS_COMPILE=$(CROSS_COMPILE)
 	@echo "##############################"
+	rm -vrf $(INSTALL_ROOT)
 	$(MAKE) -C $(TOP)/drivers -j
 	mkdir -p $(INSTALL_ROOT)/lib/modules
 ifneq ($(OUT_DIR),)
