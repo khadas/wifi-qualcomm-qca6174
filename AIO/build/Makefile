@@ -94,6 +94,7 @@ modules_install:
 	$(MAKE) -C $(TOP)/drivers/qcacld-new -j modules_install
 	mkdir -p ${OUT_DIR}/../vendor_lib/modules
 	cp $(INSTALL_ROOT)/lib/modules/wlan.ko ${OUT_DIR}/../vendor_lib/modules/wlan_6174.ko
+	rm -vrf $(INSTALL_ROOT)
 
 clean:
 	$(MAKE) -C $(TOP)/drivers clean
