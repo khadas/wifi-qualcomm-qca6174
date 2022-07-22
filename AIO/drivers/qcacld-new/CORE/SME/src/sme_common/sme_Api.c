@@ -9166,7 +9166,7 @@ eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf)
 
    if( pMsg->changeCCCallback )
    {
-      ((tSmeChangeCountryCallback)(pMsg->changeCCCallback))((void *)pMsg->pDevContext);
+      pMsg->changeCCCallback((void *)pMsg->pDevContext);
    }
 
    return eHAL_STATUS_SUCCESS;

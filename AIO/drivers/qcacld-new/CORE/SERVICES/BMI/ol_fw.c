@@ -170,6 +170,7 @@ static int ol_get_fw_files_for_target(struct ol_fw_files *pfw_files,
 int _readwrite_file(const char *filename, char *rbuf,
 	const char *wbuf, size_t length, int mode)
 {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0))
 	int ret = 0;
 	struct file *filp = (struct file *)-ENOENT;
 	mm_segment_t oldfs;
@@ -231,6 +232,9 @@ int _readwrite_file(const char *filename, char *rbuf,
 
 	set_fs(oldfs);
 	return ret;
+#else
+	return 0;
+#endif
 }
 
 #define CRASH_DUMP_PATH "/var/"

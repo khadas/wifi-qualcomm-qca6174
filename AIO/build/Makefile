@@ -70,6 +70,7 @@ else ifeq ($(IF_TYPE),SDIO)
     export CONFIG_WLAN_WAPI_MODE_11AC_DISABLE=y
     export CONFIG_WLAN_WOW_PULSE=y
     export CONFIG_TXRX_PERF=y
+    export CFG80211_CONNECT_BSS=y
 endif
 
 all:
@@ -86,13 +87,17 @@ ifneq ($(OUT_DIR),)
 else
 	find $(TOP)/drivers -type f -name 'wlan.ko' -exec cp '{}' $(INSTALL_ROOT)/lib/modules/ ';'
 endif
+ifneq ($(LLVM),)
+	llvm-strip --strip-unneeded $(INSTALL_ROOT)/lib/modules/*
+else
 	$(CROSS_COMPILE)strip --strip-unneeded $(INSTALL_ROOT)/lib/modules/*
+endif
 	@echo "##############################"
 	ls -lht $(INSTALL_ROOT)/lib/modules/
 	@echo "##############################"
 
 modules_install:
-	$(MAKE) -C $(TOP)/drivers/qcacld-new -j modules_install
+	$(MAKE) -C $(TOP)/drivers/qcacld-new M=$(QCACLD) -j modules_install
 	mkdir -p ${OUT_DIR}/../vendor_lib/modules
 	cp $(INSTALL_ROOT)/lib/modules/wlan.ko ${OUT_DIR}/../vendor_lib/modules/wlan_6174.ko
 	rm -vrf $(INSTALL_ROOT)

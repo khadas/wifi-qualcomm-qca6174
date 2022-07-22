@@ -1036,6 +1036,11 @@ free_buf:
 	}
 }
 
+static void temp_tlshim_data_rx_cb(void *tl_shim, void *buf_list, u_int16_t staid)
+{
+	tlshim_data_rx_cb(tl_shim, buf_list, staid);
+}
+
 /*
  * Rx callback from txrx module for data reception.
  */
@@ -1153,8 +1158,7 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 					TLSHIM_LOGW("No available Rx message buffer");
 					goto drop_rx_buf;
 				}
-				pkt->callback = (vos_tlshim_cb)
-						tlshim_data_rx_cb;
+				pkt->callback = temp_tlshim_data_rx_cb;
 				pkt->context = (void *) tl_shim;
 				pkt->Rxpkt = (void *) rx_buf_list;
 				pkt->staId = staid;

@@ -46,6 +46,10 @@
 #include <net/cnss_prealloc.h>
 #endif
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+#define FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
+#endif
+
 /* Packet Counter */
 static uint32_t nbuf_tx_mgmt[NBUF_TX_PKT_STATE_MAX];
 static uint32_t nbuf_tx_data[NBUF_TX_PKT_STATE_MAX];

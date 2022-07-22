@@ -77,9 +77,9 @@ adf_os_timer_init(adf_os_handle_t      hdl,
 static inline void
 adf_os_hrtimer_init(adf_os_handle_t      hdl,
                   adf_os_hrtimer_t      *timer,
-                  adf_os_hrtimer_func_t  func)
+                  __adf_os_hrtimer_func_t  func)
 {
-    __adf_os_hrtimer_init(hdl, timer, (__adf_os_hrtimer_func_t)func);
+    __adf_os_hrtimer_init(hdl, timer, func);
 }
 
 /**

@@ -113,6 +113,38 @@
 
 #include "wmi_unified_priv.h"
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+/**
+ * nla_strlcpy - Copy string attribute payload into a sized buffer
+ * @dst: where to copy the string to
+ * @nla: attribute to copy the string from
+ * @dstsize: size of destination buffer
+ *
+ * Copies at most dstsize - 1 bytes into the destination buffer.
+ * The result is always a valid NUL-terminated string. Unlike
+ * strlcpy the destination buffer is always padded out.
+ *
+ * Returns the length of the source buffer.
+ */
+size_t nla_strlcpy(char *dst, const struct nlattr *nla, size_t dstsize)
+{
+	size_t srclen = nla_len(nla);
+	char *src = nla_data(nla);
+
+	if (srclen > 0 && src[srclen - 1] == '\0')
+		srclen--;
+
+	if (dstsize > 0) {
+		size_t len = (srclen >= dstsize) ? dstsize - 1 : srclen;
+
+		memset(dst, 0, dstsize);
+		memcpy(dst, src, len);
+	}
+
+	return srclen;
+}
+#endif
+
 #define WIPHY_FLAG_DFS_OFFLOAD          BIT(24)
 
 #define g_mode_rates_size (12)
@@ -17537,8 +17569,14 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
     wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
                           WLAN_EID_INTERWORKING);
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+    wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
+                          WLAN_EID_TX_POWER_ENVELOPE);
+#else
     wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
                           WLAN_EID_VHT_TX_POWER_ENVELOPE);
+#endif
+
     if (0 != wlan_hdd_add_ie(pHostapdAdapter, genie,
                               &total_ielen, WPS_OUI_TYPE, WPS_OUI_TYPE_SIZE))
     {

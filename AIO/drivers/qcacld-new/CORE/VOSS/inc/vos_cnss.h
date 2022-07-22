@@ -42,6 +42,18 @@
 #include <linux/workqueue.h>
 #include <linux/sched.h>
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+#include <vos_timer.h>
+
+enum {
+	PM_QOS_RESERVED = 0,
+	PM_QOS_CPU_DMA_LATENCY,
+
+	/* insert new class ID */
+	PM_QOS_NUM_CLASSES,
+};
+#endif
+
 enum cnss_bus_width_type {
 	CNSS_BUS_WIDTH_NONE,
 	CNSS_BUS_WIDTH_LOW,

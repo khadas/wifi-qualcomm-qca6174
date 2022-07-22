@@ -13461,7 +13461,11 @@ static void hdd_connect_done(struct net_device *dev, const u8 *bssid,
     struct cfg80211_connect_resp_params fils_params;
     vos_mem_zero(&fils_params, sizeof(fils_params));
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+    fils_params.links[0].bssid = bssid;
+#else
     fils_params.bssid = bssid;
+#endif
     if (!roam_fils_params) {
         fils_params.status = WLAN_STATUS_UNSPECIFIED_FAILURE;
         hdd_populate_fils_params(&fils_params, NULL, 0, NULL,
@@ -13473,7 +13477,11 @@ static void hdd_connect_done(struct net_device *dev, const u8 *bssid,
         fils_params.req_ie_len = req_ie_len;
         fils_params.resp_ie = resp_ie;
         fils_params.resp_ie_len = resp_ie_len;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+        fils_params.links[0].bss = bss;
+#else
         fils_params.bss = bss;
+#endif
         hdd_populate_fils_params(&fils_params, roam_fils_params->kek,
                      roam_fils_params->kek_len,
                      roam_fils_params->fils_pmk,
@@ -16961,6 +16969,12 @@ VOS_STATUS hdd_mt_host_ev_cb(void *pcb_cxt, tSirMtEvent *pevent)
 	return VOS_STATUS_SUCCESS;
 }
 #endif
+
+void hdd_vos_process_wd_timer(struct work_struct *work)
+{
+	vos_process_wd_timer();
+}
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_wlan_startup() - HDD init function
@@ -18135,7 +18149,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    vos_set_load_in_progress(VOS_MODULE_ID_VOSS, FALSE);
 
    if (pHddCtx->cfg_ini->fIsLogpEnabled) {
-       vos_wdthread_init_timer_work(vos_process_wd_timer);
+       vos_wdthread_init_timer_work(hdd_vos_process_wd_timer);
        /* Initialize the timer to detect thread stuck issues */
        vos_thread_stuck_timer_init(
                &((VosContextType*)pVosContext)->vosWatchdog);

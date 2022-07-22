@@ -368,19 +368,19 @@ typedef struct _HID_ACCESS_LOG {
 struct htc_callbacks {
     void      *context;     /* context to pass to the dsrhandler
                                note : rwCompletionHandler is provided the context passed to HIFReadWrite  */
-    int (* rwCompletionHandler)(void *rwContext, int status);
-    int (* dsrHandler)(void *context);
+    A_STATUS (* rwCompletionHandler)(void *rwContext, A_STATUS status);
+    A_STATUS (* dsrHandler)(void *context);
 };
 
 typedef struct osdrv_callbacks {
     void      *context;     /* context to pass for all callbacks except deviceRemovedHandler
                                the deviceRemovedHandler is only called if the device is claimed */
-    int (* deviceInsertedHandler)(void *context, void *hif_handle);
-    int (* deviceRemovedHandler)(void *claimedContext, void *hif_handle);
-    int (* deviceSuspendHandler)(void *context);
-    int (* deviceResumeHandler)(void *context);
-    int (* deviceWakeupHandler)(void *context);
-    int (* devicePowerChangeHandler)(void *context, HIF_DEVICE_POWER_CHANGE_TYPE config);
+    A_STATUS (* deviceInsertedHandler)(void *context, void *hif_handle);
+    A_STATUS (* deviceRemovedHandler)(void *claimedContext, void *hif_handle);
+    A_STATUS (* deviceSuspendHandler)(void *context);
+    A_STATUS (* deviceResumeHandler)(void *context);
+    A_STATUS (* deviceWakeupHandler)(void *context);
+    A_STATUS (* devicePowerChangeHandler)(void *context, HIF_DEVICE_POWER_CHANGE_TYPE config);
 } OSDRV_CALLBACKS;
 
 #define HIF_OTHER_EVENTS     (1 << 0)   /* other interrupts (non-Recv) are pending, host

@@ -1905,8 +1905,8 @@ void ol_tx_hl_find_and_replace_tcp_ack(struct ol_txrx_vdev_t *vdev,
  *
  * Return: enum
  */
-adf_os_enum_hrtimer_t
-ol_tx_hl_vdev_tcp_del_ack_timer(adf_os_hrtimer_t *timer)
+enum hrtimer_restart
+ol_tx_hl_vdev_tcp_del_ack_timer(struct hrtimer *timer)
 {
 	struct ol_txrx_vdev_t *vdev = container_of(timer, struct ol_txrx_vdev_t,
 							tcp_ack_hash.timer);

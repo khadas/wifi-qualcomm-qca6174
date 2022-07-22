@@ -2420,6 +2420,8 @@ typedef struct sSirEseBcnReportRsp
 
 #endif /* FEATURE_WLAN_ESE || FEATURE_WLAN_ESE_UPLOAD */
 
+typedef void * (*tSmeChangeCountryCallback)(void *pContext);
+
 /* Change country code request MSG structure */
 typedef struct sAniChangeCountryCodeReq
 {
@@ -2429,7 +2431,7 @@ typedef struct sAniChangeCountryCodeReq
     tANI_U8                 countryCode[WNI_CFG_COUNTRY_CODE_LEN];   //3 char country code
     tAniBool                countryFromUserSpace;
     tAniBool                sendRegHint;  //TRUE if we want to send hint to NL80211
-    void                    *changeCCCallback;
+    tSmeChangeCountryCallback changeCCCallback;
     void                    *pDevContext; //device context
     void                    *pVosContext; //voss context
 

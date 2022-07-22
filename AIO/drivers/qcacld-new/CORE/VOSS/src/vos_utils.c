@@ -67,6 +67,10 @@
 #else
 #include <linux/crypto.h>
 #endif
+#if(LINUX_VERSION_CODE >= KERNEL_VERSION(5,15,0))
+#include <crypto/internal/cipher.h>
+MODULE_IMPORT_NS(CRYPTO_INTERNAL);
+#endif
 #include <linux/scatterlist.h>
 #include <linux/completion.h>
 #include <linux/ieee80211.h>
