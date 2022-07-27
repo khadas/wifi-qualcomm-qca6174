@@ -143,7 +143,11 @@ end:
    return;
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+void epping_tx_queue_timeout(struct net_device *dev, unsigned int txqueue)
+#else
 void epping_tx_queue_timeout(struct net_device *dev)
+#endif
 {
    epping_adapter_t *pAdapter;
 
@@ -170,7 +174,7 @@ end:
 
 }
 
-int epping_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
+netdev_tx_t epping_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
    epping_adapter_t *pAdapter;
    int ret = 0;

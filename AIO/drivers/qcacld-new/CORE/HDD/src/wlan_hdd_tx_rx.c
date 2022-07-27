@@ -1004,7 +1004,11 @@ static void __hdd_tx_timeout(struct net_device *dev)
  *
  * Return: none
  */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+void hdd_tx_timeout(struct net_device *dev, unsigned int txqueue)
+#else
 void hdd_tx_timeout(struct net_device *dev)
+#endif
 {
 	vos_ssr_protect(__func__);
 	__hdd_tx_timeout(dev);

@@ -490,7 +490,7 @@ drop_list:
 
 }
 
-int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
+netdev_tx_t hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	int ret;
 
@@ -558,7 +558,11 @@ static void __hdd_softap_tx_timeout(struct net_device *dev)
  *
  * Return: none
  */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+void hdd_softap_tx_timeout(struct net_device *dev, unsigned int txqueue)
+#else
 void hdd_softap_tx_timeout(struct net_device *dev)
+#endif
 {
 	vos_ssr_protect(__func__);
 	__hdd_softap_tx_timeout(dev);

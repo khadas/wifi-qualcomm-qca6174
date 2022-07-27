@@ -19517,8 +19517,13 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
  *
  * Return: zero for success non-zero for failure
  */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+static int wlan_hdd_cfg80211_stop_ap(struct wiphy *wiphy,
+					struct net_device *dev, unsigned int link_id)
+#else
 static int wlan_hdd_cfg80211_stop_ap(struct wiphy *wiphy,
 					struct net_device *dev)
+#endif
 {
 	int ret;
 

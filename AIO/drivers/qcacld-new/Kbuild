@@ -1057,7 +1057,15 @@ endif
 
 EXTRA_CFLAGS += $(INCS)
 EXTRA_CFLAGS += -I$(KERNEL_SRC)/include/linux
-EXTRA_CFLAGS += -w
+#EXTRA_CFLAGS += -w
+EXTRA_CFLAGS += -Wno-typedef-redefinition -Wno-shift-count-negative
+EXTRA_CFLAGS += -Wno-shift-count-overflow -Wno-enum-conversion
+EXTRA_CFLAGS += -Wno-int-in-bool-context  -Wno-parentheses-equality
+EXTRA_CFLAGS += -Wno-tautological-pointer-compare -Wno-non-literal-null-conversion
+EXTRA_CFLAGS += -Wno-tautological-overlap-compare -Wno-pointer-bool-conversion
+EXTRA_CFLAGS += -Wno-sometimes-uninitialized -Wno-unused-variable
+EXTRA_CFLAGS += -Wno-unused-function -Wno-logical-not-parentheses
+EXTRA_CFLAGS += -Wno-absolute-value
 
 CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DANI_LITTLE_BIT_ENDIAN \
