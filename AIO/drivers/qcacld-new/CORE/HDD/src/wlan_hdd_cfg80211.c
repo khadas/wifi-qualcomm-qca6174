@@ -21373,7 +21373,11 @@ static int __wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
 
 static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
                                       struct net_device *ndev,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+                                      int link_id, u8 key_index, bool pairwise,
+#else
                                       u8 key_index, bool pairwise,
+#endif
                                       const u8 *mac_addr,
                                       struct key_params *params
                                       )
@@ -21467,7 +21471,11 @@ static int __wlan_hdd_cfg80211_get_key(
 static int wlan_hdd_cfg80211_get_key(
                         struct wiphy *wiphy,
                         struct net_device *ndev,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+                        int link_id, u8 key_index, bool pairwise,
+#else
                         u8 key_index, bool pairwise,
+#endif
                         const u8 *mac_addr, void *cookie,
                         void (*callback)(void *cookie, struct key_params*)
                         )
@@ -21611,7 +21619,11 @@ static int __wlan_hdd_cfg80211_del_key(struct wiphy *wiphy,
  */
 static int wlan_hdd_cfg80211_del_key(struct wiphy *wiphy,
 					struct net_device *dev,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+					int link_id, u8 key_index,
+#else
 					u8 key_index,
+#endif
 					bool pairwise, const u8 *mac_addr)
 {
 	int ret;
@@ -21746,7 +21758,11 @@ static int __wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
 
 static int wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
                                               struct net_device *ndev,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+                                              int link_id, u8 key_index,
+#else
                                               u8 key_index,
+#endif
                                               bool unicast, bool multicast)
 {
     int ret;
@@ -28078,7 +28094,11 @@ static int __wlan_hdd_set_default_mgmt_key(struct wiphy *wiphy,
  */
 static int wlan_hdd_set_default_mgmt_key(struct wiphy *wiphy,
 					   struct net_device *netdev,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+					   int link_id, u8 key_index)
+#else
 					   u8 key_index)
+#endif
 {
 	int ret;
 
