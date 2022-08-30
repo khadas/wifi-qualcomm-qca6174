@@ -171,6 +171,7 @@ static ssize_t ath_procfs_diag_write(struct file *file, const char __user *buf,
 static const struct proc_ops athdiag_fops = {
 	.proc_read = ath_procfs_diag_read,
 	.proc_write = ath_procfs_diag_write,
+	.proc_lseek = no_llseek,
 };
 #else
 static const struct file_operations athdiag_fops = {
