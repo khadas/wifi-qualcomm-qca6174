@@ -3308,11 +3308,37 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
 #ifdef WLAN_FEATURE_MOTION_DETECTION
           case eWNI_SME_MOTION_DET_HOST_EVENT:
                if (pMsg->bodyptr) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+/* fix cfi issue:
+[76193.700489][  T885] Kernel panic - not syncing: CFI failure (target: __typeid__ZTSF10VOS_STATUSPvP11tSirMtEventE_global_addr+0x8/0x10 [wlan])
+[76193.701403][  T885] CPU: 2 PID: 885 Comm: VosMCThread Tainted: G           OE     5.15.41-android13-8-00127-geb6c8ea051f8-ab9000480 #1
+[76193.702901][  T885] Hardware name: Amlogic (DT)
+[76193.703464][  T885] Call trace:
+[76193.703853][  T885]  dump_backtrace.cfi_jt+0x0/0x8
+[76193.704450][  T885]  dump_stack_lvl+0x80/0xb8
+[76193.704990][  T885]  panic+0x180/0x444
+[76193.705457][  T885]  __cfi_slowpath_diag+0x0/0x6c
+[76193.706042][  T885]  __cfi_check_fail+0x54/0x58 [wlan]
+[76193.707129][  T885]  __cfi_slowpath_diag+0x44/0x6c
+[76193.707644][  T885]  sme_ProcessMsg+0xf40/0x115c [wlan]
+[76193.708708][  T885]  vos_sched_init_mqs+0xb20/0x146c [wlan]
+[76193.709778][  T885]  kthread+0x168/0x1dc
+[76193.710240][  T885]  ret_from_fork+0x10/0x20
+[76193.710772][  T885] SMP: stopping secondary CPUs
+[76193.711355][  T885] Kernel Offset: 0x1200080000 from 0xffffffc008000000
+[76193.712168][  T885] PHYS_OFFSET: 0x0
+[76193.712612][  T885] CPU features: 0x2,00000a03,03300e46
+[76193.713262][  T885] Memory Limit: none
+[76193.727594][  T885] [reboot]: reboot reason = 12, kernel panic
+*/
+                   extern VOS_STATUS hdd_mt_host_ev_cb(void *pcb_cxt, tSirMtEvent *pevent);
+                   hdd_mt_host_ev_cb(pMac->hHdd, (tSirMtEvent *)pMsg->bodyptr);
+#else
                    if (pMac->sme.mt_host_ev_cb) {
                        pMac->sme.mt_host_ev_cb(pMac->hHdd,
                                                (tSirMtEvent *)pMsg->bodyptr);
                    }
-
+#endif
                    vos_mem_free(pMsg->bodyptr);
                    pMsg->bodyptr = NULL;
                }
