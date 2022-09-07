@@ -974,6 +974,17 @@ static int hdd_hostapd_ioctl(struct net_device *dev,
 }
 
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+static int hdd_hostapd_ioctl_wrapper(struct net_device *dev, struct ifreq *ifr,
+	void __user *data, int cmd)
+{
+	return hdd_hostapd_ioctl(dev, ifr, cmd);
+}
+#endif
+
+
+
+
 #ifdef QCA_HT_2040_COEX
 VOS_STATUS hdd_set_sap_ht2040_mode(hdd_adapter_t *pHostapdAdapter,
                                    tANI_U8 channel_type)
@@ -8220,6 +8231,9 @@ struct net_device_ops net_ops_struct  = {
     .ndo_get_stats = hdd_softap_stats,
     .ndo_set_mac_address = hdd_hostapd_set_mac_address,
     .ndo_do_ioctl = hdd_hostapd_ioctl,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+    .ndo_siocdevprivate = hdd_hostapd_ioctl_wrapper,
+#endif
     .ndo_change_mtu = hdd_hostapd_change_mtu,
     .ndo_select_queue = hdd_hostapd_select_queue,
  };
