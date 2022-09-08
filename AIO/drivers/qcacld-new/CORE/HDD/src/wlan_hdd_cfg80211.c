@@ -20087,7 +20087,7 @@ static int wlan_hdd_change_client_iface_to_new_mode(struct net_device *ndev,
     hdd_deinit_adapter(pHddCtx, pAdapter, true);
     wdev->iftype = type;
     /*Check for sub-string p2p to confirm its a p2p interface*/
-    if (NULL != strnstr(ndev->name, "p2p", 3)) {
+    if (NULL != strnstr(ndev->name, "p2p", 3) || NULL != strnstr(ndev->name, "ap", 2)) {
         pAdapter->device_mode =
                         (type == NL80211_IFTYPE_STATION)?
                                      WLAN_HDD_P2P_DEVICE : WLAN_HDD_P2P_CLIENT;
