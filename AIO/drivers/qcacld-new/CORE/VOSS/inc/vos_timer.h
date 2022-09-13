@@ -85,7 +85,7 @@ static inline struct timespec timespec64_to_timespec(const struct timespec64 ts6
 {
 	struct timespec ret;
 
-	ret.tv_sec = (time_t)ts64.tv_sec;
+	ret.tv_sec = (__kernel_old_time_t)ts64.tv_sec;
 	ret.tv_nsec = ts64.tv_nsec;
 	return ret;
 }
