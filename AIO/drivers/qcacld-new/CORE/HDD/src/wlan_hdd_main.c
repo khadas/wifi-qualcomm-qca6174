@@ -1809,8 +1809,10 @@ hdd_parse_get_ibss_peer_info(tANI_U8 *pValue, v_MACADDR_t *pPeerMacAddr)
 }
 
 #ifdef IPA_UC_STA_OFFLOAD
-static void hdd_set_thermal_level_cb(hdd_context_t *pHddCtx, u_int8_t level)
+static void hdd_set_thermal_level_cb(void *pCtx, u_int8_t level)
 {
+   hdd_context_t *pHddCtx = (hdd_context_t *)pCtx;
+
    /* Change IPA to SW path when throttle level greater than 0 */
    if (level > THROTTLE_LEVEL_0)
       hdd_ipa_send_mcc_scc_msg(pHddCtx, TRUE);
@@ -2033,9 +2035,10 @@ hdd_thermal_suspend_queue_work(hdd_context_t *hdd_ctx, unsigned long ms)
 }
 
 static void
-hdd_thermal_temp_ind_event_cb(hdd_context_t *hdd_ctx, uint32_t degreeC)
+hdd_thermal_temp_ind_event_cb(void *pCtx, uint32_t degreeC)
 {
 	struct sk_buff *vendor_event;
+	hdd_context_t *hdd_ctx = (hdd_context_t *)pCtx;
 
 	vendor_event = cfg80211_vendor_event_alloc(hdd_ctx->wiphy,
 			NULL, sizeof(uint32_t) + NLMSG_HDRLEN,
