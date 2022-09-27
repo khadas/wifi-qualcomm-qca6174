@@ -1821,7 +1821,7 @@ static void hdd_set_thermal_level_cb(void *pCtx, u_int8_t level)
       hdd_ipa_send_mcc_scc_msg(pHddCtx, pHddCtx->mcc_mode);
 }
 #else
-static void hdd_set_thermal_level_cb(hdd_context_t *pHddCtx, u_int8_t level)
+static void hdd_set_thermal_level_cb(void *pCtx, u_int8_t level)
 {
 }
 #endif
@@ -2091,7 +2091,7 @@ hdd_thermal_suspend_cleanup(hdd_context_t *hdd_ctx)
 }
 
 static inline void
-hdd_thermal_temp_ind_event_cb(hdd_context_t *hdd_ctx, uint32_t degreeC)
+hdd_thermal_temp_ind_event_cb(void *pCtx, uint32_t degreeC)
 {
 	return;
 }
@@ -18039,10 +18039,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    /* Plug in set thermal level callback */
    sme_add_set_thermal_level_callback(pHddCtx->hHal,
-                     (tSmeSetThermalLevelCallback)hdd_set_thermal_level_cb);
+                     hdd_set_thermal_level_cb);
 
    sme_add_thermal_temperature_ind_callback(pHddCtx->hHal,
-                    (tSmeThermalTempIndCb)hdd_thermal_temp_ind_event_cb);
+                    hdd_thermal_temp_ind_event_cb);
 
    /* Bad peer tx flow control */
    wlan_hdd_bad_peer_txctl(pHddCtx);
