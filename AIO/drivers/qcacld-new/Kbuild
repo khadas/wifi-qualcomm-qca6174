@@ -6,6 +6,16 @@ else
 	KERNEL_BUILD := 0
 endif
 
+ifeq ($(CONFIG_BUILDROOT),y)
+	EXTRA_CFLAGS += -DCONFIG_BUILDROOT
+endif
+
+ifeq ($(CONFIG_YOCTO),y)
+	EXTRA_CFLAGS += -DCONFIG_YOCTO
+endif
+
+CONFIG_CLD_REGDB := y
+
 ifeq ($(CONFIG_CLD_HL_SDIO_CORE), y)
 	CONFIG_QCA_WIFI_SDIO := 1
 	CONFIG_ROME_IF = sdio
@@ -1048,6 +1058,10 @@ OBJS +=		$(PKTLOG_OBJS)
 endif
 
 EXTRA_CFLAGS += $(INCS)
+EXTRA_CFLAGS += -I$(KERNEL_SRC)/include/linux
+EXTRA_CFLAGS += -Wno-shift-count-negative
+EXTRA_CFLAGS += -Wno-shift-count-overflow
+EXTRA_CFLAGS += -Wno-enum-conversion
 
 CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DANI_LITTLE_BIT_ENDIAN \

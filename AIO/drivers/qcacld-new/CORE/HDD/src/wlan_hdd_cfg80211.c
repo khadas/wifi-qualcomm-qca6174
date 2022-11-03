@@ -20126,7 +20126,14 @@ static int wlan_hdd_change_client_iface_to_new_mode(struct net_device *ndev,
     hdd_deinit_adapter(pHddCtx, pAdapter, true);
     wdev->iftype = type;
     /*Check for sub-string p2p to confirm its a p2p interface*/
+#if 1
+    /* workaround by amlogic
+     * Since android needs to use ap0 as a softap, we need to change the name of p2p0 to ap0.
+    */
+    if (NULL != strnstr(ndev->name, "p2p", 3) || NULL != strnstr(ndev->name, "ap", 2)) {
+#else
     if (NULL != strnstr(ndev->name, "p2p", 3)) {
+#endif
         pAdapter->device_mode =
                         (type == NL80211_IFTYPE_STATION)?
                                      WLAN_HDD_P2P_DEVICE : WLAN_HDD_P2P_CLIENT;
@@ -20933,12 +20940,19 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
                 vos_mem_copy(StaParams.extn_capability, params->ext_capab,
                              params->ext_capab_len);
 
+#ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
+            if (NULL != params->link_sta_params.ht_capa) {
+                StaParams.htcap_present = 1;
+                vos_mem_copy(&StaParams.HTCap, params->link_sta_params.ht_capa, sizeof(tSirHTCap));
+            }
+            StaParams.supported_rates_len = params->link_sta_params.supported_rates_len;
+#else
             if (NULL != params->ht_capa) {
                 StaParams.htcap_present = 1;
                 vos_mem_copy(&StaParams.HTCap, params->ht_capa, sizeof(tSirHTCap));
             }
-
             StaParams.supported_rates_len = params->supported_rates_len;
+#endif
 
             /*
              * Note : The Maximum sizeof supported_rates sent by the Supplicant
@@ -20954,8 +20968,13 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
 
             if (0 != StaParams.supported_rates_len) {
                 int i = 0;
+#ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
+                vos_mem_copy(StaParams.supported_rates, params->link_sta_params.supported_rates,
+                             StaParams.supported_rates_len);
+#else
                 vos_mem_copy(StaParams.supported_rates, params->supported_rates,
                              StaParams.supported_rates_len);
+#endif
                 VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                            "Supported Rates with Length %d", StaParams.supported_rates_len);
                 for (i=0; i < StaParams.supported_rates_len; i++)
@@ -20963,11 +20982,17 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
                                "[%d]: %0x", i, StaParams.supported_rates[i]);
             }
 
+#ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
+            if (NULL != params->link_sta_params.vht_capa) {
+                StaParams.vhtcap_present = 1;
+                vos_mem_copy(&StaParams.VHTCap, params->link_sta_params.vht_capa, sizeof(tSirVHTCap));
+            }
+#else
             if (NULL != params->vht_capa) {
                 StaParams.vhtcap_present = 1;
                 vos_mem_copy(&StaParams.VHTCap, params->vht_capa, sizeof(tSirVHTCap));
             }
-
+#endif
             if (0 != params->ext_capab_len ) {
                 /*Define A Macro : TODO Sunil*/
                 if ((1<<4) & StaParams.extn_capability[3]) {
@@ -20979,11 +21004,17 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
                 }
             }
 
+#ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
+            if (pHddCtx->cfg_ini->fEnableTDLSWmmMode &&
+                (params->link_sta_params.ht_capa || params->link_sta_params.vht_capa ||
+                (params->sta_flags_set & BIT(NL80211_STA_FLAG_WME))))
+                is_qos_wmm_sta = true;
+#else
             if (pHddCtx->cfg_ini->fEnableTDLSWmmMode &&
                 (params->ht_capa || params->vht_capa ||
                 (params->sta_flags_set & BIT(NL80211_STA_FLAG_WME))))
                 is_qos_wmm_sta = true;
-
+#endif
             hddLog(VOS_TRACE_LEVEL_INFO,
                    FL("%s: TDLS Peer is QOS capable is_qos_wmm_sta= %d HTcapPresent = %d"),
                    __func__, is_qos_wmm_sta, StaParams.htcap_present);
@@ -21405,7 +21436,11 @@ static int __wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
 
 static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
                                       struct net_device *ndev,
+#ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
+                                      int link_id, u8 key_index, bool pairwise,
+#else
                                       u8 key_index, bool pairwise,
+#endif
                                       const u8 *mac_addr,
                                       struct key_params *params
                                       )
@@ -21499,7 +21534,11 @@ static int __wlan_hdd_cfg80211_get_key(
 static int wlan_hdd_cfg80211_get_key(
                         struct wiphy *wiphy,
                         struct net_device *ndev,
+#ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
+                        int link_id, u8 key_index, bool pairwise,
+#else
                         u8 key_index, bool pairwise,
+#endif
                         const u8 *mac_addr, void *cookie,
                         void (*callback)(void *cookie, struct key_params*)
                         )
@@ -21643,7 +21682,11 @@ static int __wlan_hdd_cfg80211_del_key(struct wiphy *wiphy,
  */
 static int wlan_hdd_cfg80211_del_key(struct wiphy *wiphy,
 					struct net_device *dev,
+#ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
+					int link_id, u8 key_index,
+#else
 					u8 key_index,
+#endif
 					bool pairwise, const u8 *mac_addr)
 {
 	int ret;
@@ -21778,7 +21821,11 @@ static int __wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
 
 static int wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
                                               struct net_device *ndev,
+#ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
+                                              int link_id, u8 key_index,
+#else
                                               u8 key_index,
+#endif
                                               bool unicast, bool multicast)
 {
     int ret;
@@ -28034,7 +28081,11 @@ static int __wlan_hdd_set_default_mgmt_key(struct wiphy *wiphy,
  */
 static int wlan_hdd_set_default_mgmt_key(struct wiphy *wiphy,
 					   struct net_device *netdev,
+#ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
+					   int link_id, u8 key_index)
+#else
 					   u8 key_index)
+#endif
 {
 	int ret;
 

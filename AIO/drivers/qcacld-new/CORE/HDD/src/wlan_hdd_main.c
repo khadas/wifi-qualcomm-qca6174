@@ -188,6 +188,10 @@ static struct kparam_string fwpath = {
 };
 
 static char *country_code;
+static char *ap_name="p2p%d";
+#ifdef CONFIG_YOCTO
+static char *country_code_default = "CN";
+#endif
 static int   enable_11d = -1;
 static int   enable_dfs_chan_scan = -1;
 #ifdef FEATURE_LARGE_PREALLOC
@@ -2034,9 +2038,10 @@ hdd_thermal_suspend_queue_work(hdd_context_t *hdd_ctx, unsigned long ms)
 }
 
 static void
-hdd_thermal_temp_ind_event_cb(hdd_context_t *hdd_ctx, uint32_t degreeC)
+hdd_thermal_temp_ind_event_cb(void *pContext, uint32_t degreeC)
 {
 	struct sk_buff *vendor_event;
+	hdd_context_t *hdd_ctx = (hdd_context_t *)pContext;
 
 	vendor_event = cfg80211_vendor_event_alloc(hdd_ctx->wiphy,
 			NULL, sizeof(uint32_t) + NLMSG_HDRLEN,
@@ -2089,7 +2094,7 @@ hdd_thermal_suspend_cleanup(hdd_context_t *hdd_ctx)
 }
 
 static inline void
-hdd_thermal_temp_ind_event_cb(hdd_context_t *hdd_ctx, uint32_t degreeC)
+hdd_thermal_temp_ind_event_cb(void *pContext, uint32_t degreeC)
 {
 	return;
 }
@@ -12396,12 +12401,23 @@ hdd_adapter_t *hdd_open_adapter(hdd_context_t *hdd_ctx,
 
 	wlan_hdd_set_concurrency_mode(hdd_ctx, session_type);
 
+#if 0
 	/* Initialize the WoWL service */
 	if (!hdd_init_wowl(adapter)) {
 		hddLog(VOS_TRACE_LEVEL_FATAL,
 		       "%s: hdd_init_wowl failed", __func__);
 		goto err_post_add_adapter;
 	}
+#else
+	//Send Mdns pattern to overwite FW default pattern on STA interface only.
+	if (adapter->device_mode == WLAN_HDD_INFRA_STATION) {
+		/* Initialize the WoWL service */
+		if (!hdd_init_wowl(adapter)) {
+		    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_init_wowl failed", __func__);
+		    goto err_post_add_adapter;
+		}
+	}
+#endif
 
 	/* Adapter successfully added. Increment the vdev count  */
 	hdd_ctx->current_intf_count++;
@@ -17446,6 +17462,12 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
          goto err_vosclose;
       }
 
+#ifdef CONFIG_YOCTO
+      if (!country_code) {
+         country_code = country_code_default;
+      }
+#endif
+
 #ifdef CLD_REGDB
      if (wiphy && country_code)
          regulatory_hint(wiphy, country_code);
@@ -17725,7 +17747,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
          }
 
 #ifndef SUPPORT_P2P_BY_ONE_INTF_WLAN
-         pP2pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE, "p2p%d",
+         pP2pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE, ap_name,
 #else
          pP2pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
 #endif
@@ -18030,7 +18052,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                      hdd_set_thermal_level_cb);
 
    sme_add_thermal_temperature_ind_callback(pHddCtx->hHal,
-                    (tSmeThermalTempIndCb)hdd_thermal_temp_ind_event_cb);
+                    hdd_thermal_temp_ind_event_cb);
 
    /* Bad peer tx flow control */
    wlan_hdd_bad_peer_txctl(pHddCtx);
@@ -21226,6 +21248,10 @@ module_param(enable_11d, int,
 
 module_param(country_code, charp,
              S_IRUSR | S_IRGRP | S_IROTH);
+
+module_param(ap_name, charp,
+             S_IRUSR | S_IRGRP | S_IROTH);
+
 #else /* FEATURE_LARGE_PREALLOC */
 
 void register_wlan_module_parameters_callback(int con_mode_set,

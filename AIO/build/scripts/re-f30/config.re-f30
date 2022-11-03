@@ -1,9 +1,43 @@
 #
 # Please modify KERNELPATH, KERNELARCH and TOOLPREFIX to meet your environment
 #
-export KERNELPATH=/lib/modules/${shell uname -r}/build
-export KERNELARCH=i386
-export TOOLPREFIX=
+#export KERNELPATH=/lib/modules/${shell uname -r}/build
+#export KERNELARCH=i386
+#export TOOLPREFIX=
+
+ifeq ($(KERNELARCH), )
+  ifneq ($(ARCH), )
+    export KERNELARCH=$(ARCH)
+  else
+    $(error "Must specify KERNELARCH value")
+  endif
+endif
+
+ifeq ($(TOOLPREFIX), )
+  ifneq ($(CROSS_COMPILE), )
+    export TOOLPREFIX=$(CROSS_COMPILE)
+  else
+    ifeq ($(LLVM),)
+      $(error "Must specify TOOLPREFIX value")
+    endif
+  endif
+endif
+
+ifeq ($(KERNELPATH), )
+  ifneq ($(KERNEL_SRC), )
+    export KERNELPATH=$(KERNEL_SRC)
+  else
+    $(error "Must specify KERNELPATH value")
+  endif
+endif
+
+ifeq ($(KERNEL_SRC), )
+  export KERNEL_SRC=$(KERNELPATH)
+endif
+
+ifneq ($(M),)
+export QCACLD=$(subst AIO/build,AIO/drivers/qcacld-new,$(M))
+endif
 
 export CONFIG_NO_USE_BACKPORTS=y
 export CONFIG_CFG80211_DEPEND_ON_KERNEL=y
