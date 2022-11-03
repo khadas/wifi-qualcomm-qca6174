@@ -392,7 +392,7 @@ extern int iw_set_essid(struct net_device *dev,
 
 extern int iw_get_essid(struct net_device *dev,
                        struct iw_request_info *info,
-                       union iwreq_data *dwrq, char *extra);
+                       struct iw_point *dwrq, char *extra);
 
 
 extern int iw_set_ap_address(struct net_device *dev,
@@ -532,5 +532,6 @@ int wlan_hdd_set_multicast_probe(hdd_adapter_t *adapter,
 			int group_id,int interval);
 int wlan_hdd_get_rx_group(hdd_adapter_t *adapter,
 			union iwreq_data *wrqu, char *extra);
+int wlan_hdd_au_set_cts(hdd_adapter_t * pAdapter, int mode, int profile);
 #endif
 #endif // __WEXT_IW_H__

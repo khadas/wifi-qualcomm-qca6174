@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -668,19 +669,12 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
     // Extract extendedRateSet
     pStartBssReq->extendedRateSet.numRates = *pBuf++;
     len--;
-    if ((pStartBssReq->nwType == eSIR_11G_NW_TYPE) ||
-        (pStartBssReq->nwType == eSIR_11N_NW_TYPE ))
+    if (pStartBssReq->extendedRateSet.numRates > 0)
     {
         vos_mem_copy( pStartBssReq->extendedRateSet.rate,
                        pBuf, pStartBssReq->extendedRateSet.numRates);
         pBuf += pStartBssReq->extendedRateSet.numRates;
         len  -= pStartBssReq->extendedRateSet.numRates;
-    }
-    else
-    {
-       pBuf += pStartBssReq->extendedRateSet.numRates;
-       len  -= pStartBssReq->extendedRateSet.numRates;
-       pStartBssReq->extendedRateSet.numRates = 0;
     }
 
     vos_mem_copy(&(pStartBssReq->htConfig), pBuf,

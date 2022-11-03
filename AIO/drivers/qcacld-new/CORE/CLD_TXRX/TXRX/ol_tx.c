@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011-2014, 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016-2018, 2021 The Linux Foundation. 
+ * All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -48,7 +49,7 @@
 #include <ol_tx_classify.h>   /* ol_tx_classify, ol_tx_classify_mgmt */
 #include <ol_tx_queue.h>      /* ol_tx_enqueue */
 #include <ol_tx_sched.h>      /* ol_tx_sched */
-
+#include <asm/div64.h>
 /* internal header files relevant only for specific systems (Pronto) */
 #include <ol_txrx_encap.h>    /* OL_TX_ENCAP, etc */
 #include "vos_lock.h"
@@ -1905,8 +1906,8 @@ void ol_tx_hl_find_and_replace_tcp_ack(struct ol_txrx_vdev_t *vdev,
  *
  * Return: enum
  */
-enum hrtimer_restart
-ol_tx_hl_vdev_tcp_del_ack_timer(struct hrtimer *timer)
+adf_os_enum_hrtimer_t
+ol_tx_hl_vdev_tcp_del_ack_timer(adf_os_hrtimer_t *timer)
 {
 	struct ol_txrx_vdev_t *vdev = container_of(timer, struct ol_txrx_vdev_t,
 							tcp_ack_hash.timer);
@@ -1987,23 +1988,27 @@ ol_tx_pdev_reset_bundle_require(void* pdev_handle)
  */
 void
 ol_tx_vdev_set_bundle_require(uint8_t vdev_id, unsigned long tx_bytes,
-			uint32_t time_in_ms, uint32_t high_th, uint32_t low_th)
+			uint32_t time_in_ms, uint64_t high_th, uint64_t low_th)
 {
 	struct ol_txrx_vdev_t* vdev = ol_txrx_get_vdev_from_vdev_id(vdev_id);
 	bool old_bundle_required;
+	uint64_t high_th_temp;
+	uint64_t low_th_temp;
 
 	if ((!vdev) || (low_th > high_th))
 		return;
 
 	old_bundle_required = vdev->bundling_reqired;
-	if (tx_bytes > ((high_th * time_in_ms * 1500)/1000))
+	high_th_temp = high_th * time_in_ms * 1500;
+	low_th_temp = low_th * time_in_ms * 1500;
+	if (tx_bytes > do_div(high_th_temp,1000))
 		vdev->bundling_reqired = true;
-	else if (tx_bytes < ((low_th * time_in_ms * 1500)/1000))
+	else if (tx_bytes < do_div(high_th_temp,1000))
 		vdev->bundling_reqired = false;
 
 	if (old_bundle_required != vdev->bundling_reqired)
 		TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
-			"vdev_id %d bundle_require %d tx_bytes %ld time_in_ms %d high_th %d low_th %d\n",
+			"vdev_id %d bundle_require %d tx_bytes %ld time_in_ms %d high_th %lld low_th %lld\n",
 			vdev->vdev_id, vdev->bundling_reqired, tx_bytes,
 			time_in_ms, high_th, low_th);
 }

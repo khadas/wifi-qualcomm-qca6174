@@ -104,7 +104,7 @@
   @return         : NET_XMIT_DROP if packets are dropped
                   : NET_XMIT_SUCCESS if packet is enqueued successfully
   ===========================================================================*/
-extern netdev_tx_t hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev);
+extern int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev);
 
 extern void hdd_drop_skb(hdd_adapter_t *adapter, struct sk_buff *skb);
 
@@ -119,11 +119,7 @@ extern void hdd_drop_skb_list(hdd_adapter_t *adapter, struct sk_buff *skb,
   @param dev : [in] pointer to Libra network device
   @return    : None
   ===========================================================================*/
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
-extern void hdd_tx_timeout(struct net_device *dev, unsigned int txqueue);
-#else
 extern void hdd_tx_timeout(struct net_device *dev);
-#endif
 
 /**============================================================================
   @brief hdd_stats() - Function registered with the Linux OS for

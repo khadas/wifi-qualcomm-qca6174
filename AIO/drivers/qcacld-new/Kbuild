@@ -6,14 +6,6 @@ else
 	KERNEL_BUILD := 0
 endif
 
-ifeq ($(CONFIG_BUILDROOT),y)
-	EXTRA_CFLAGS += -DCONFIG_BUILDROOT
-endif
-
-ifeq ($(CONFIG_YOCTO),y)
-	EXTRA_CFLAGS += -DCONFIG_YOCTO
-endif
-
 ifeq ($(CONFIG_CLD_HL_SDIO_CORE), y)
 	CONFIG_QCA_WIFI_SDIO := 1
 	CONFIG_ROME_IF = sdio
@@ -22,8 +14,6 @@ endif
 ifndef CONFIG_ROME_IF
 	CONFIG_ROME_IF = pci
 endif
-
-CONFIG_CLD_REGDB := y
 
 ifeq ($(KERNEL_BUILD),1)
 	# These are provided in external module based builds
@@ -144,6 +134,9 @@ ifeq ($(KERNEL_BUILD), 0)
                 CONFIG_WLAN_FEATURE_11W := y
         endif
         ifeq ($(CONFIG_ROME_IF),sdio)
+                CONFIG_WLAN_FEATURE_11W := y
+        endif
+        ifeq ($(CONFIG_ROME_IF),pci)
                 CONFIG_WLAN_FEATURE_11W := y
         endif
 
@@ -809,14 +802,13 @@ VOSS_OBJS :=    $(VOSS_SRC_DIR)/vos_api.o \
 		$(VOSS_SRC_DIR)/vos_types.o \
                 $(VOSS_SRC_DIR)/vos_utils.o
 
-ifeq ($(CONFIG_CLD_REGDB),y)
-VOSS_OBJS += $(VOSS_SRC_DIR)/vos_regdb.o
-endif
-
 ifeq ($(BUILD_DIAG_VERSION),1)
 VOSS_OBJS += $(VOSS_SRC_DIR)/vos_diag.o
 endif
 
+ifeq ($(CONFIG_CLD_REGDB),y)
+VOSS_OBJS += $(VOSS_SRC_DIR)/vos_regdb.o
+endif
 ########### BMI ###########
 BMI_DIR := CORE/SERVICES/BMI
 
@@ -1056,16 +1048,6 @@ OBJS +=		$(PKTLOG_OBJS)
 endif
 
 EXTRA_CFLAGS += $(INCS)
-EXTRA_CFLAGS += -I$(KERNEL_SRC)/include/linux
-#EXTRA_CFLAGS += -w
-EXTRA_CFLAGS += -Wno-typedef-redefinition -Wno-shift-count-negative
-EXTRA_CFLAGS += -Wno-shift-count-overflow -Wno-enum-conversion
-EXTRA_CFLAGS += -Wno-int-in-bool-context  -Wno-parentheses-equality
-EXTRA_CFLAGS += -Wno-tautological-pointer-compare -Wno-non-literal-null-conversion
-EXTRA_CFLAGS += -Wno-tautological-overlap-compare -Wno-pointer-bool-conversion
-EXTRA_CFLAGS += -Wno-sometimes-uninitialized -Wno-unused-variable
-EXTRA_CFLAGS += -Wno-unused-function -Wno-logical-not-parentheses
-EXTRA_CFLAGS += -Wno-absolute-value
 
 CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DANI_LITTLE_BIT_ENDIAN \
@@ -1102,7 +1084,8 @@ CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DWLAN_FEATURE_GTK_OFFLOAD \
 		-DWLAN_WAKEUP_EVENTS \
 		-DFEATURE_WLAN_RA_FILTERING\
-		-DWLAN_KD_READY_NOTIFIER \
+	        -DWLAN_KD_READY_NOTIFIER \
+		-DWLAN_NL80211_TESTMODE \
 		-DFEATURE_WLAN_LPHB \
 		-DFEATURE_WLAN_PAL_TIMER_DISABLE \
 		-DFEATURE_WLAN_PAL_MEM_DISABLE \
@@ -1118,10 +1101,6 @@ CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DWLAN_VOWIFI_DEBUG \
 		-DATH_SUPPORT_DFS \
 		-DWMI_COEX_BTC_DUTYCYCLE
-
-ifeq ($(CFG80211_CONNECT_BSS), y)
-CDEFINES += -DCFG80211_CONNECT_BSS
-endif
 
 ifeq ($(CONFIG_WLAN_POWER_DEBUGFS), y)
 CDEFINES += -DWLAN_POWER_DEBUGFS
@@ -1150,10 +1129,6 @@ CDEFINES +=     -DWLAN_FEATURE_MBSSID \
 		-DFEATURE_WLAN_CH_AVOID \
 		-DFEATURE_WLAN_STA_AP_MODE_DFS_DISABLE \
 		-DWLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
-endif
-
-ifeq ($(CONFIG_CLD_REGDB), y)
-CDEFINES +=     -DCLD_REGDB
 endif
 
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
@@ -1297,7 +1272,9 @@ endif
 ifeq ($(CONFIG_SLUB_DEBUG_ON),y)
 CDEFINES += -DTIMER_MANAGER
 CDEFINES += -DMEMORY_DEBUG
+ifneq ($(CONFIG_ROME_IF), sdio)
 CDEFINES += -DNBUF_MAP_UNMAP_DEBUG
+endif
 endif
 
 ifeq ($(HAVE_CFG80211),1)
@@ -1917,6 +1894,10 @@ endif
 
 ifeq ($(CONFIG_SPECTRAL_SCAN), y)
 CDEFINES += -DWLAN_SPECTRAL_SCAN
+endif
+
+ifeq ($(CONFIG_CLD_REGDB), y)
+CDEFINES += -DCLD_REGDB
 endif
 
 # Module information used by KBuild framework

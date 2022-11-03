@@ -1111,9 +1111,7 @@ VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message)
 #endif
 
 #ifdef CONFIG_NL80211_TESTMODE
-#if defined(QCA_WIFI_FTM) && defined(WLAN_NL80211_TESTMODE)
-    wlan_hdd_testmode_rx_event(data, (size_t)data_len);
-#endif
+        wlan_hdd_testmode_rx_event(data, (size_t)data_len);
 #endif
 
 #if defined(LINUX_QCMBR)

@@ -30,11 +30,7 @@
 #include <crypto/hash.h>
 #include <crypto/aes.h>
 #include <crypto/skcipher.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
-#include <crypto/sha2.h>
-#else
 #include <crypto/sha.h>
-#endif
 
 /* Preprocessor definitions and constants */
 

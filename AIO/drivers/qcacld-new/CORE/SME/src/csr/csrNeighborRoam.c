@@ -3362,6 +3362,7 @@ eHalStatus csrNeighborRoamPerformContiguousBgScan(tpAniSirGlobal pMac,
     eHalStatus      status = eHAL_STATUS_SUCCESS;
     tCsrBGScanRequest   bgScanParams;
     tANI_U8   numOfChannels = 0, i = 0;
+    tANI_U32  tmpNumOfChannels = 0;
     tANI_U8   *channelList = NULL;
     tANI_U8   *pInChannelList = NULL;
     tANI_U8   tmpChannelList[WNI_CFG_VALID_CHANNEL_LIST_LEN];
@@ -3372,14 +3373,16 @@ eHalStatus csrNeighborRoamPerformContiguousBgScan(tpAniSirGlobal pMac,
     NEIGHBOR_ROAM_DEBUG(pMac, LOG2, FL("get valid channel list"));
 
     numOfChannels = sizeof(pMac->roam.validChannelList);
+    tmpNumOfChannels = (tANI_U32)numOfChannels;
 
     if(!HAL_STATUS_SUCCESS(csrGetCfgValidChannels(pMac,
                           (tANI_U8 *)pMac->roam.validChannelList,
-                          (tANI_U32 *) &numOfChannels)))
+                          &tmpNumOfChannels)))
     {
         smsLog(pMac, LOGE, FL("Could not get valid channel list"));
         return eHAL_STATUS_FAILURE;
     }
+    numOfChannels = (tANI_U8)tmpNumOfChannels;
     pInChannelList = pMac->roam.validChannelList;
 
     if (CSR_IS_ROAM_INTRA_BAND_ENABLED(pMac))
@@ -4317,6 +4320,7 @@ VOS_STATUS csrNeighborRoamTransitToCFGChanScan(tpAniSirGlobal pMac,
     eHalStatus  status  = eHAL_STATUS_SUCCESS;
     int i = 0;
     tANI_U8 numOfChannels = 0;
+    tANI_U32  tmpNumOfChannels = 0;
     tANI_U8   channelList[WNI_CFG_VALID_CHANNEL_LIST_LEN];
     tpCsrChannelInfo    currChannelListInfo;
     tANI_U8   scanChannelList[WNI_CFG_VALID_CHANNEL_LIST_LEN];
@@ -4521,11 +4525,13 @@ VOS_STATUS csrNeighborRoamTransitToCFGChanScan(tpAniSirGlobal pMac,
                 /* Scan all channels from non-occupied list */
                 NEIGHBOR_ROAM_DEBUG(pMac, LOG2, "Get valid channel list");
                 numOfChannels = sizeof(pMac->roam.validChannelList);
+                tmpNumOfChannels = (tANI_U32)numOfChannels;
 
                 if(HAL_STATUS_SUCCESS(csrGetCfgValidChannels(pMac,
                                 (tANI_U8 *)pMac->roam.validChannelList,
-                                (tANI_U32 *) &numOfChannels)))
+                                &tmpNumOfChannels)))
             {
+                numOfChannels = (tANI_U8)tmpNumOfChannels;
                 if (numOfChannels > WNI_CFG_VALID_CHANNEL_LIST_LEN)
                 {
                     numOfChannels = WNI_CFG_VALID_CHANNEL_LIST_LEN;

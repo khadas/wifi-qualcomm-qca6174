@@ -77,6 +77,7 @@
 #include "sme_nan_datapath.h"
 #include "csrApi.h"
 #include "utilsApi.h"
+#include "limUtils.h"
 
 extern tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
@@ -3308,37 +3309,11 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
 #ifdef WLAN_FEATURE_MOTION_DETECTION
           case eWNI_SME_MOTION_DET_HOST_EVENT:
                if (pMsg->bodyptr) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
-/* fix cfi issue:
-[76193.700489][  T885] Kernel panic - not syncing: CFI failure (target: __typeid__ZTSF10VOS_STATUSPvP11tSirMtEventE_global_addr+0x8/0x10 [wlan])
-[76193.701403][  T885] CPU: 2 PID: 885 Comm: VosMCThread Tainted: G           OE     5.15.41-android13-8-00127-geb6c8ea051f8-ab9000480 #1
-[76193.702901][  T885] Hardware name: Amlogic (DT)
-[76193.703464][  T885] Call trace:
-[76193.703853][  T885]  dump_backtrace.cfi_jt+0x0/0x8
-[76193.704450][  T885]  dump_stack_lvl+0x80/0xb8
-[76193.704990][  T885]  panic+0x180/0x444
-[76193.705457][  T885]  __cfi_slowpath_diag+0x0/0x6c
-[76193.706042][  T885]  __cfi_check_fail+0x54/0x58 [wlan]
-[76193.707129][  T885]  __cfi_slowpath_diag+0x44/0x6c
-[76193.707644][  T885]  sme_ProcessMsg+0xf40/0x115c [wlan]
-[76193.708708][  T885]  vos_sched_init_mqs+0xb20/0x146c [wlan]
-[76193.709778][  T885]  kthread+0x168/0x1dc
-[76193.710240][  T885]  ret_from_fork+0x10/0x20
-[76193.710772][  T885] SMP: stopping secondary CPUs
-[76193.711355][  T885] Kernel Offset: 0x1200080000 from 0xffffffc008000000
-[76193.712168][  T885] PHYS_OFFSET: 0x0
-[76193.712612][  T885] CPU features: 0x2,00000a03,03300e46
-[76193.713262][  T885] Memory Limit: none
-[76193.727594][  T885] [reboot]: reboot reason = 12, kernel panic
-*/
-                   extern VOS_STATUS hdd_mt_host_ev_cb(void *pcb_cxt, tSirMtEvent *pevent);
-                   hdd_mt_host_ev_cb(pMac->hHdd, (tSirMtEvent *)pMsg->bodyptr);
-#else
                    if (pMac->sme.mt_host_ev_cb) {
                        pMac->sme.mt_host_ev_cb(pMac->hHdd,
                                                (tSirMtEvent *)pMsg->bodyptr);
                    }
-#endif
+
                    vos_mem_free(pMsg->bodyptr);
                    pMsg->bodyptr = NULL;
                }
@@ -3567,6 +3542,22 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                        (struct stats_ext2_event *)pMsg->bodyptr);
                vos_mem_free(pMsg->bodyptr);
                break;
+#ifdef AUDIO_MULTICAST_AGGR_SUPPORT
+          case eWNI_SME_AU_TXRX_STAT_IND:
+               if (pMac->sme.pau_txrx_stat_ind_cb)
+                   pMac->sme.pau_txrx_stat_ind_cb(pMsg->bodyptr,
+                                        pMac->sme.pau_get_txrx_stat_cb_context);
+               if (pMsg->bodyptr)
+                   vos_mem_free(pMsg->bodyptr);
+		break;
+          case eWNI_SME_AU_TX_SCHED_IND:
+               if (pMac->sme.pau_tx_sched_ind_cb)
+                   pMac->sme.pau_tx_sched_ind_cb(pMsg->bodyptr,
+                                        pMac->sme.pau_get_tx_sched_cb_context);
+               if (pMsg->bodyptr)
+                   vos_mem_free(pMsg->bodyptr);
+		break;
+#endif
 
           default:
 
@@ -9192,7 +9183,7 @@ eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf)
 
    if( pMsg->changeCCCallback )
    {
-      pMsg->changeCCCallback((void *)pMsg->pDevContext);
+      ((tSmeChangeCountryCallback)(pMsg->changeCCCallback))((void *)pMsg->pDevContext);
    }
 
    return eHAL_STATUS_SUCCESS;
@@ -15352,6 +15343,16 @@ eHalStatus sme_ProcessChannelChangeResp(tpAniSirGlobal pMac,
 
         return status;
     }
+    if (CSR_IS_ROAM_SUBSTATE_STOP_BSS_REQ( pMac, SessionId))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED,
+                "sapdfs: Abort channel change in STOP_BSS_REQ state on sessionId[%d]",
+                SessionId);
+        status = eHAL_STATUS_FAILURE;
+        vos_mem_free(roam_info);
+
+        return status;
+    }
     if (msg_type == eWNI_SME_CHANNEL_CHANGE_RSP)
     {
         roam_info->channelChangeRespEvent->sessionId = SessionId;
@@ -21386,3 +21387,168 @@ eHalStatus sme_spectral_scan_config(tHalHandle hal,
 	return status;
 }
 #endif
+
+#ifdef AUDIO_MULTICAST_AGGR_SUPPORT
+/**
+ * sme_au_get_txrx_stat() - get audio multicast txrx stats
+ * @sessionid: Session ID
+ * @context: event handle context
+ * @pcallbackfn: callback function pointer
+ *
+ * This function will send GEN_PARAM_MULTICAST_GET_TXRX_STAT to WMA
+ *
+ * Return: 0 on success, otherwise error value
+ */
+eHalStatus sme_au_get_txrx_stat(tHalHandle hal,
+			uint8_t sessionid,
+			void *context,
+			void (*callbackfn)(struct sir_au_get_txrx_stat_resp *param,
+						void *pcontext))
+{
+
+	eHalStatus          status    = eHAL_STATUS_SUCCESS;
+	VOS_STATUS          vosstatus = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal      mac       = PMAC_STRUCT(hal);
+	vos_msg_t           vosmessage;
+	wda_cli_set_cmd_t   *iwcmd;
+
+	/* serialize the req through MC thread */
+	iwcmd = (wda_cli_set_cmd_t *)vos_mem_malloc(sizeof(wda_cli_set_cmd_t));
+	if (NULL == iwcmd) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			"%s: Memory allocation failed.", __func__);
+		return eHAL_STATUS_E_MALLOC_FAILED;
+	}
+	iwcmd->param_value = sessionid;
+	iwcmd->param_vdev_id = sessionid;
+	iwcmd->param_id = GEN_PARAM_MULTICAST_GET_TXRX_STAT;
+	iwcmd->param_vp_dev = GEN_CMD;
+
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		if (NULL == callbackfn) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: Indication Call back is NULL",
+				__func__);
+			sme_ReleaseGlobalLock(&mac->sme);
+			return eHAL_STATUS_FAILURE;
+		}
+
+		mac->sme.pau_txrx_stat_ind_cb = callbackfn;
+		mac->sme.pau_get_txrx_stat_cb_context = context;
+
+		vosmessage.bodyptr = (void*)iwcmd;
+		vosmessage.type    = WDA_CLI_SET_CMD;
+		vosstatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosmessage);
+		if (!VOS_IS_STATUS_SUCCESS(vosstatus)) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: Post get peer info msg fail", __func__);
+			vos_mem_free(vosmessage.bodyptr);
+			status = eHAL_STATUS_FAILURE;
+		}
+		sme_ReleaseGlobalLock(&mac->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("sme_AcquireGlobalLock failed"));
+		vos_mem_free(iwcmd);
+	}
+	return status;
+}
+
+/**
+ * sme_au_get_tx_sched() - get audio multicast tx sched method
+ * @sessionid: Session ID
+ * @context: event handle context
+ * @pcallbackfn: callback function pointer
+ *
+ * This function will send GEN_PARAM_MULTICAST_GET_TX_SCHED to WMA
+ *
+ * Return: 0 on success, otherwise error value
+ */
+eHalStatus sme_au_get_tx_sched(tHalHandle hal,
+			uint8_t sessionid,
+			void *context,
+			void (*callbackfn)(struct sir_au_get_tx_sched_resp *param,
+						void *pcontext))
+{
+
+	eHalStatus          status    = eHAL_STATUS_SUCCESS;
+	VOS_STATUS          vosstatus = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal      mac       = PMAC_STRUCT(hal);
+	vos_msg_t           vosmessage;
+	wda_cli_set_cmd_t   *iwcmd;
+
+	/* serialize the req through MC thread */
+	iwcmd = (wda_cli_set_cmd_t *)vos_mem_malloc(sizeof(wda_cli_set_cmd_t));
+	if (NULL == iwcmd) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			"%s: Memory allocation failed.", __func__);
+		return eHAL_STATUS_E_MALLOC_FAILED;
+	}
+	iwcmd->param_value = sessionid;
+	iwcmd->param_vdev_id = sessionid;
+	iwcmd->param_id = GEN_PARAM_MULTICAST_GET_TX_SCHED;
+	iwcmd->param_vp_dev = GEN_CMD;
+
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		if (NULL == callbackfn) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: Indication Call back is NULL",
+				__func__);
+			sme_ReleaseGlobalLock(&mac->sme);
+			return eHAL_STATUS_FAILURE;
+		}
+
+		mac->sme.pau_tx_sched_ind_cb = callbackfn;
+		mac->sme.pau_get_tx_sched_cb_context = context;
+
+		vosmessage.bodyptr = (void*)iwcmd;
+		vosmessage.type    = WDA_CLI_SET_CMD;
+		vosstatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosmessage);
+		if (!VOS_IS_STATUS_SUCCESS(vosstatus)) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: Post get tx sched msg fail", __func__);
+			vos_mem_free(vosmessage.bodyptr);
+			status = eHAL_STATUS_FAILURE;
+		}
+		sme_ReleaseGlobalLock(&mac->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("sme_AcquireGlobalLock failed"));
+		vos_mem_free(iwcmd);
+	}
+	return status;
+}
+#endif
+
+void sme_enable_aid_by_user(tHalHandle hal, bool aid_by_user)
+{
+    tpAniSirGlobal mac = PMAC_STRUCT(hal);
+    mac->aid_by_user = aid_by_user;
+}
+
+eHalStatus sme_register_aid_req_callback(tHalHandle hal,
+			void (*aid_req_cb)(void *, sir_aid_req_t *))
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (status == eHAL_STATUS_SUCCESS) {
+		mac->sme.aid_req_cb = aid_req_cb;
+		sme_ReleaseGlobalLock(&mac->sme);
+	}
+
+	return status;
+}
+
+eHalStatus sme_aid_set(tHalHandle hal, sir_aid_set_t *aid_set)
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+
+	lim_process_sme_aid_set(mac, aid_set);
+
+	return status;
+}

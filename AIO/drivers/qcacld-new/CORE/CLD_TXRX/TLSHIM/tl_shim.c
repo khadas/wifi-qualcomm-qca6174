@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2020 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1036,11 +1036,6 @@ free_buf:
 	}
 }
 
-static void temp_tlshim_data_rx_cb(void *tl_shim, void *buf_list, u_int16_t staid)
-{
-	tlshim_data_rx_cb(tl_shim, buf_list, staid);
-}
-
 /*
  * Rx callback from txrx module for data reception.
  */
@@ -1158,7 +1153,8 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 					TLSHIM_LOGW("No available Rx message buffer");
 					goto drop_rx_buf;
 				}
-				pkt->callback = temp_tlshim_data_rx_cb;
+				pkt->callback = (vos_tlshim_cb)
+						tlshim_data_rx_cb;
 				pkt->context = (void *) tl_shim;
 				pkt->Rxpkt = (void *) rx_buf_list;
 				pkt->staId = staid;
@@ -2094,7 +2090,7 @@ VOS_STATUS WLANTL_Close(void *vos_ctx)
 #endif
 
 	adf_os_mem_free(tl_shim->vdev_active);
-#ifdef FEATURE_WLAN_ESE
+#if defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD)
 	vos_flush_work(&tl_shim->iapp_work.deferred_work);
 #endif
 	vos_flush_work(&tl_shim->cache_flush_work);

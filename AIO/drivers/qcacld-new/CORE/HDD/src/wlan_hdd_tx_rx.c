@@ -94,57 +94,6 @@ const v_U8_t hdd_QdiscAcToTlAC[] = {
   Function definitions and documentation
   -------------------------------------------------------------------------*/
 
-#include <net/ndisc.h>
-bool cfg80211_is_gratuitous_arp_unsolicited_na(struct sk_buff *skb)
-{
-   const struct ethhdr *eth = (void *)skb->data;
-   const struct {
-		   struct arphdr hdr;
-		   u8 ar_sha[ETH_ALEN];
-		   u8 ar_sip[4];
-		   u8 ar_tha[ETH_ALEN];
-		   u8 ar_tip[4];
-   } __packed *arp;
-   const struct ipv6hdr *ipv6;
-   const struct icmp6hdr *icmpv6;
-
-   switch (eth->h_proto) {
-   case cpu_to_be16(ETH_P_ARP):
-		   /* can't say - but will probably be dropped later anyway */
-		   if (!pskb_may_pull(skb, sizeof(*eth) + sizeof(*arp)))
-				   return false;
-
-		   arp = (void *)(eth + 1);
-
-		   if ((arp->hdr.ar_op == cpu_to_be16(ARPOP_REPLY) ||
-				arp->hdr.ar_op == cpu_to_be16(ARPOP_REQUEST)) &&
-			   !memcmp(arp->ar_sip, arp->ar_tip, sizeof(arp->ar_sip)))
-				   return true;
-		   break;
-   case cpu_to_be16(ETH_P_IPV6):
-		   /* can't say - but will probably be dropped later anyway */
-		   if (!pskb_may_pull(skb, sizeof(*eth) + sizeof(*ipv6) +
-								   sizeof(*icmpv6)))
-				   return false;
-
-		   ipv6 = (void *)(eth + 1);
-		   icmpv6 = (void *)(ipv6 + 1);
-
-		   if (icmpv6->icmp6_type == NDISC_NEIGHBOUR_ADVERTISEMENT &&
-			   !memcmp(&ipv6->saddr, &ipv6->daddr, sizeof(ipv6->saddr)))
-				   return true;
-		   break;
-   default:
-		   /*
-			* no need to support other protocols, proxy service isn't
-			* specified for any others
-			*/
-		   break;
-   }
-
-   return false;
-}
-
 /**============================================================================
   @brief hdd_flush_tx_queues() - Utility function to flush the TX queues
 
@@ -825,7 +774,7 @@ drop_list:
    return NETDEV_TX_OK;
 }
 
-netdev_tx_t hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
+int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	int ret;
 
@@ -1004,11 +953,7 @@ static void __hdd_tx_timeout(struct net_device *dev)
  *
  * Return: none
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
-void hdd_tx_timeout(struct net_device *dev, unsigned int txqueue)
-#else
 void hdd_tx_timeout(struct net_device *dev)
-#endif
 {
 	vos_ssr_protect(__func__);
 	__hdd_tx_timeout(dev);
