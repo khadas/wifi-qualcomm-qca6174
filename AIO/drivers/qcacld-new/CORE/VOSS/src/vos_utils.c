@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -62,7 +63,10 @@
 
 #include <linux/err.h>
 #include <linux/random.h>
-#if(LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,15,0))
+#include <crypto/internal/cipher.h>
+MODULE_IMPORT_NS(CRYPTO_INTERNAL);
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
 #include <crypto/skcipher.h>
 #else
 #include <linux/crypto.h>

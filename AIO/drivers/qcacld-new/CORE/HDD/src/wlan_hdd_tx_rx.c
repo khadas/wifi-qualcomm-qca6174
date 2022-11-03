@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -454,7 +455,7 @@ static void hdd_get_transmit_sta_id(hdd_adapter_t *adapter,
   @return         : NET_XMIT_DROP if packets are dropped
                   : NET_XMIT_SUCCESS if packet is enqueued successfully
   ===========================================================================*/
-int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
+netdev_tx_t __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
    VOS_STATUS status;
    WLANTL_ACEnumType ac;
@@ -774,9 +775,9 @@ drop_list:
    return NETDEV_TX_OK;
 }
 
-int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
+netdev_tx_t hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
-	int ret;
+	netdev_tx_t ret;
 
 	vos_ssr_protect(__func__);
 	ret = __hdd_hard_start_xmit(skb, dev);
@@ -953,7 +954,11 @@ static void __hdd_tx_timeout(struct net_device *dev)
  *
  * Return: none
  */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
+void hdd_tx_timeout(struct net_device *dev, unsigned int txqueue)
+#else
 void hdd_tx_timeout(struct net_device *dev)
+#endif
 {
 	vos_ssr_protect(__func__);
 	__hdd_tx_timeout(dev);
@@ -1409,6 +1414,18 @@ static inline void hdd_tsf_timestamp_rx(hdd_context_t *hdd_ctx,
 }
 #endif
 
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(4, 6, 0))
+static bool hdd_is_gratuitous_arp_unsolicited_na(struct sk_buff *skb)
+{
+        return false;
+}
+#else
+static bool hdd_is_gratuitous_arp_unsolicited_na(struct sk_buff *skb)
+{
+        return cfg80211_is_gratuitous_arp_unsolicited_na(skb);
+}
+#endif
+
 /**============================================================================
   @brief hdd_rx_packet_cbk() - Receive callback registered with TL.
   TL will call this to notify the HDD when one or more packets were
@@ -1472,7 +1489,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
       skb_next = skb->next;
 
       if (((pHddStaCtx->conn_info.proxyARPService) &&
-         cfg80211_is_gratuitous_arp_unsolicited_na(skb)) ||
+         hdd_is_gratuitous_arp_unsolicited_na(skb)) ||
          vos_is_load_unload_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
             ++pAdapter->hdd_stats.hddTxRxStats.rxDropped[cpu_index];
             VOS_TRACE(VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_INFO,

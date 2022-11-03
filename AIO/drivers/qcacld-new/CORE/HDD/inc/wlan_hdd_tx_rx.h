@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -104,7 +105,7 @@
   @return         : NET_XMIT_DROP if packets are dropped
                   : NET_XMIT_SUCCESS if packet is enqueued successfully
   ===========================================================================*/
-extern int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev);
+extern netdev_tx_t hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev);
 
 extern void hdd_drop_skb(hdd_adapter_t *adapter, struct sk_buff *skb);
 
@@ -119,7 +120,11 @@ extern void hdd_drop_skb_list(hdd_adapter_t *adapter, struct sk_buff *skb,
   @param dev : [in] pointer to Libra network device
   @return    : None
   ===========================================================================*/
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
+extern void hdd_tx_timeout(struct net_device *dev, unsigned int txqueue);
+#else
 extern void hdd_tx_timeout(struct net_device *dev);
+#endif
 
 /**============================================================================
   @brief hdd_stats() - Function registered with the Linux OS for

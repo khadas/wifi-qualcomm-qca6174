@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011-2017, 2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1053,8 +1054,7 @@ typedef __ani_attr_pre_packed struct sSirMacWapiInfo
 {
     tANI_U8        length;
     tANI_U8        info[SIR_MAC_MAX_IE_LENGTH];
-} __ani_attr_packed tSirMacWapiInfo, *tpSirMacWapiInfo,
-    tSirMacWapiInfo, *tpSirMacWapiInfo;
+} __ani_attr_packed tSirMacWapiInfo, *tpSirMacWapiInfo;
 
 typedef __ani_attr_pre_packed struct sSirMacFHParamSet
 {

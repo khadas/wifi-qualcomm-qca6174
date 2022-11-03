@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013, 2016-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -167,10 +168,17 @@ static ssize_t ath_procfs_diag_write(struct file *file, const char __user *buf,
 	}
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
+static const struct proc_ops athdiag_fops = {
+	.proc_read = ath_procfs_diag_read,
+	.proc_write = ath_procfs_diag_write,
+};
+#else
 static const struct file_operations athdiag_fops = {
 	.read = ath_procfs_diag_read,
 	.write = ath_procfs_diag_write,
 };
+#endif
 
 /**
  *This function is called when the module is loaded

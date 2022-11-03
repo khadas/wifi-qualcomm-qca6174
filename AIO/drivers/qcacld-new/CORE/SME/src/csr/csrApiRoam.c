@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2012-2020 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -3606,8 +3606,8 @@ eHalStatus csrRoamPrepareBssConfig(tpAniSirGlobal pMac, tCsrRoamProfile *pProfil
 
         if (((pBssConfig->uCfgDot11Mode == eCSR_CFG_DOT11_MODE_11N)  ||
                          (pBssConfig->uCfgDot11Mode == eCSR_CFG_DOT11_MODE_11AC)) &&
-                         ((pBssConfig->qosType != eCSR_MEDIUM_ACCESS_WMM_eDCF_DSCP) ||
-                          (pBssConfig->qosType != eCSR_MEDIUM_ACCESS_11e_HCF) ||
+                         ((pBssConfig->qosType != eCSR_MEDIUM_ACCESS_WMM_eDCF_DSCP) &&
+                          (pBssConfig->qosType != eCSR_MEDIUM_ACCESS_11e_HCF) &&
                           (pBssConfig->qosType != eCSR_MEDIUM_ACCESS_11e_eDCF) ))
         {
             //Joining BSS is 11n capable and WMM is disabled on AP.
@@ -5583,7 +5583,7 @@ static eHalStatus csrRoamSaveSecurityRspIE(tpAniSirGlobal pMac, tANI_U32 session
                         + 2; //reserved
                     if( pIesLocal->RSN.pmkid_count )
                     {
-                        nIeLen += 2 + pIesLocal->RSN.pmkid_count * 4;  //pmkid
+                        nIeLen += 2 + pIesLocal->RSN.pmkid_count * 16;  //pmkid
                     }
                     //nIeLen doesn't count EID and length fields
                     pSession->pWpaRsnRspIE = vos_mem_malloc(nIeLen + 2);
@@ -5624,9 +5624,15 @@ static eHalStatus csrRoamSaveSecurityRspIE(tpAniSirGlobal pMac, tANI_U32 session
                             pIeBuf += pIesLocal->RSN.akm_suite_cnt * 4;
                         }
                         //copy the rest
-                        vos_mem_copy(pIeBuf,
-                                     pIesLocal->RSN.akm_suite + pIesLocal->RSN.akm_suite_cnt * 4,
-                                     2 + pIesLocal->RSN.pmkid_count * 4);
+                        if( pIesLocal->RSN.pmkid_count )
+                        {
+                            vos_mem_copy(pIeBuf, &pIesLocal->RSN.pmkid_count, 2);
+                            pIeBuf += 2;
+                            vos_mem_copy(pIeBuf,
+                                         pIesLocal->RSN.pmkid,
+                                         pIesLocal->RSN.pmkid_count * 16);
+                            pIeBuf += pIesLocal->RSN.pmkid_count * 16;
+                        }
                         pSession->nWpaRsnRspIeLength = nIeLen + 2;
                     }
                 }
@@ -7382,7 +7388,7 @@ eHalStatus csrRoamCopyConnectedProfile(tpAniSirGlobal pMac, tANI_U32 sessionId, 
     do
     {
         vos_mem_set(pDstProfile, sizeof(tCsrRoamProfile), 0);
-        if(pSrcProfile->bssid)
+        if(pSrcProfile)
         {
             pDstProfile->BSSIDs.bssid = vos_mem_malloc(sizeof(tCsrBssid));
             if ( NULL == pDstProfile->BSSIDs.bssid )
@@ -15235,7 +15241,7 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         }
         if (pProfile->MFPEnabled &&
            !(pProfile->MFPRequired) && ((pIes->RSN.present) &&
-           (!(pIes->RSN.RSN_Cap[0] >> 7) & 0x1)))
+           (!((pIes->RSN.RSN_Cap[0] >> 7) & 0x1))))
             dwTmp = pal_cpu_to_be32(eSIR_ED_NONE);
         vos_mem_copy(pBuf, &dwTmp, sizeof(tANI_U32));
         pBuf += sizeof(tANI_U32);

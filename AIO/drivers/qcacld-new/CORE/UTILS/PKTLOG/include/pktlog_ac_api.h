@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -34,12 +35,7 @@
 #define _PKTLOG_AC_API_
 #ifndef REMOVE_PKT_LOG
 
-/**
- * @typedef ol_pktlog_dev_handle
- * @brief opaque handle for pktlog device object
- */
-struct ol_pktlog_dev_t;
-typedef struct ol_pktlog_dev_t* ol_pktlog_dev_handle;
+#include <pktlog.h>
 
 /**
  * @typedef ol_softc_handle

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -53,7 +54,7 @@
 #define SIR_MAX_PACKET_SIZE     512
 #define SIR_MAX_NUM_CHANNELS    64
 #define SIR_MAX_NUM_STA_IN_IBSS 16
-#define SIR_ESE_MAX_MEAS_IE_REQS   8
+#define SIR_ESE_MAX_MEAS_IE_REQS   64
 
 typedef enum
 {

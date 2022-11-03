@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -392,7 +393,7 @@ extern int iw_set_essid(struct net_device *dev,
 
 extern int iw_get_essid(struct net_device *dev,
                        struct iw_request_info *info,
-                       struct iw_point *dwrq, char *extra);
+                       union iwreq_data *dwrq, char *extra);
 
 
 extern int iw_set_ap_address(struct net_device *dev,
@@ -468,7 +469,7 @@ VOS_STATUS iw_set_tdls_params(struct net_device *dev, struct iw_request_info *in
 #ifdef WLAN_FEATURE_PACKET_FILTERING
 int wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set);
 #endif
-void* wlan_hdd_change_country_code_callback(void *pAdapter);
+void wlan_hdd_change_country_code_callback(void *pAdapter);
 
 VOS_STATUS  wlan_hdd_set_powersave(hdd_adapter_t *pAdapter, int mode);
 

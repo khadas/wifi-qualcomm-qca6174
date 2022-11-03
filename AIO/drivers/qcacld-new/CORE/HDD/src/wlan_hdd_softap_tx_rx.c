@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012-2018,2021 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -230,7 +231,7 @@ void hdd_softap_tx_resume_cb(void *adapter_context,
 
   @return         : NETDEV_TX_OK
   ===========================================================================*/
-int __hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
+netdev_tx_t __hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
    WLANTL_ACEnumType ac;
    hdd_adapter_t *pAdapter = (hdd_adapter_t *)netdev_priv(dev);
@@ -494,9 +495,9 @@ drop_list:
 
 }
 
-int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
+netdev_tx_t hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
-	int ret;
+	netdev_tx_t ret;
 
 	vos_ssr_protect(__func__);
 	ret = __hdd_softap_hard_start_xmit(skb, dev);
@@ -562,7 +563,11 @@ static void __hdd_softap_tx_timeout(struct net_device *dev)
  *
  * Return: none
  */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
+void hdd_softap_tx_timeout(struct net_device *dev, unsigned int txqueue)
+#else
 void hdd_softap_tx_timeout(struct net_device *dev)
+#endif
 {
 	vos_ssr_protect(__func__);
 	__hdd_softap_tx_timeout(dev);

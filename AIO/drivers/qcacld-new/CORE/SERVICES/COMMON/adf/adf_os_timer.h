@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011,2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -79,7 +80,7 @@ adf_os_hrtimer_init(adf_os_handle_t      hdl,
                   adf_os_hrtimer_t      *timer,
                   adf_os_hrtimer_func_t  func)
 {
-    __adf_os_hrtimer_init(hdl, timer, (__adf_os_hrtimer_func_t)func);
+    __adf_os_hrtimer_init(hdl, timer, func);
 }
 
 /**

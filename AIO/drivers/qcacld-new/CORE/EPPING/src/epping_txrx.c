@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2014-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -143,7 +144,11 @@ end:
    return;
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
+void epping_tx_queue_timeout(struct net_device *dev, unsigned int txqueue)
+#else
 void epping_tx_queue_timeout(struct net_device *dev)
+#endif
 {
    epping_adapter_t *pAdapter;
 
@@ -170,7 +175,7 @@ end:
 
 }
 
-int epping_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
+netdev_tx_t epping_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
    epping_adapter_t *pAdapter;
    int ret = 0;
@@ -200,7 +205,8 @@ struct net_device_stats* epping_get_stats(struct net_device *dev)
    return &pAdapter->stats;
 }
 
-int epping_ndev_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
+static int
+__epping_ndev_ioctl(struct net_device *dev, void __user *data, int cmd)
 {
    epping_adapter_t *pAdapter;
    int ret = 0;
@@ -219,7 +225,7 @@ int epping_ndev_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
       goto end;
    }
 
-   if ((!ifr) || (!ifr->ifr_data)) {
+   if (!data) {
       ret = -EINVAL;
       goto end;
    }
@@ -241,6 +247,21 @@ int epping_ndev_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 end:
    return ret;
 }
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+static int
+epping_dev_private_ioctl(struct net_device *dev, struct ifreq *ifr,
+			 void __user *data, int cmd)
+{
+	return __epping_ndev_ioctl(dev, data, cmd);
+}
+#else
+static int
+epping_ndev_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
+{
+	return __epping_ndev_ioctl(dev, ifr->ifr_data, cmd);
+}
+#endif
 
 static int epping_set_mac_address(struct net_device *dev, void *addr)
 {
@@ -363,7 +384,11 @@ static struct net_device_ops epping_drv_ops = {
    .ndo_start_xmit = epping_hard_start_xmit,
    .ndo_tx_timeout = epping_tx_queue_timeout,
    .ndo_get_stats = epping_get_stats,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+   .ndo_siocdevprivate = epping_dev_private_ioctl,
+#else
    .ndo_do_ioctl = epping_ndev_ioctl,
+#endif
    .ndo_set_mac_address = epping_set_mac_address,
    .ndo_select_queue    = NULL,
  };

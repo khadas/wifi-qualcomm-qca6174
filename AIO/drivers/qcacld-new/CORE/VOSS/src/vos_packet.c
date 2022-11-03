@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012-2014, 2016, 2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -331,7 +332,11 @@ void vos_pkt_trace_buf_update
 )
 {
    v_U32_t slot;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0))
+	struct timespec64 tv;
+#else
    struct timeval tv;
+#endif
 
    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
              "%s %d, %s", __func__, __LINE__, event_string);
@@ -349,7 +354,11 @@ void vos_pkt_trace_buf_update
    adf_os_spin_unlock_bh(&trace_buffer_lock);
    vos_timer_get_timeval(&tv);
    trace_buffer[slot].event_sec_time = tv.tv_sec;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0))
+   trace_buffer[slot].event_msec_time = do_div(tv.tv_nsec, NSEC_PER_MSEC);
+#else
    trace_buffer[slot].event_msec_time = tv.tv_usec;
+#endif
    strlcpy(trace_buffer[slot].event_string, event_string,
           sizeof(trace_buffer[slot].event_string));
 
@@ -369,7 +378,11 @@ void vos_pkt_trace_dump_slot_buf(int slot)
 
 	local_time = (u32)(trace_buffer[slot].event_sec_time -
 		(sys_tz.tz_minuteswest * 60));
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0))
+	rtc_time64_to_tm(local_time, &tm);
+#else
 	rtc_time_to_tm(local_time, &tm);
+#endif
 	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
 		"%5d : [%02d:%02d:%02d.%06lu] : %s",
 		trace_buffer[slot].order,

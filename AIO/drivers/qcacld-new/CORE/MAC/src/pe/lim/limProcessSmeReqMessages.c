@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -4160,7 +4161,7 @@ __limHandleSmeStopBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         !LIM_IS_BT_AMP_STA_ROLE(psessionEntry) &&
         !LIM_IS_NDI_ROLE(psessionEntry)) {
         tSirMacAddr   bcAddr = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-        if ((stopBssReq.reasonCode == eSIR_SME_MIC_COUNTER_MEASURES))
+        if (stopBssReq.reasonCode == eSIR_SME_MIC_COUNTER_MEASURES)
             // Send disassoc all stations associated thru TKIP
             __limCounterMeasures(pMac,psessionEntry);
         else

@@ -863,6 +863,12 @@ struct cfg_hostapd_edca {
 	uint8_t enable;
 };
 
+enum wlan_hdd_vendor_ie_access_policy {
+	WLAN_HDD_VENDOR_IE_ACCESS_NONE = 0,
+	WLAN_HDD_VENDOR_IE_ACCESS_ALLOW_IF_LISTED,
+};
+
+
 #ifdef WLAN_NL80211_TESTMODE
 enum wlan_hdd_tm_attr
 {
@@ -883,11 +889,6 @@ enum wlan_hdd_tm_cmd
 };
 
 #define WLAN_HDD_TM_DATA_MAX_LEN    5000
-
-enum wlan_hdd_vendor_ie_access_policy {
-	WLAN_HDD_VENDOR_IE_ACCESS_NONE = 0,
-	WLAN_HDD_VENDOR_IE_ACCESS_ALLOW_IF_LISTED,
-};
 
 static const struct nla_policy wlan_hdd_tm_policy[WLAN_HDD_TM_ATTR_MAX + 1] =
 {
@@ -1640,8 +1641,11 @@ static int __is_driver_dfs_capable(struct wiphy *wiphy,
         return -EPERM;
     }
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0)) || \
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(4,17,0)) || \
     defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
+    dfs_capability = wiphy_ext_feature_isset(wiphy,
+                                             NL80211_EXT_FEATURE_DFS_OFFLOAD);
+#else
     dfs_capability = !!(wiphy->flags & WIPHY_FLAG_DFS_OFFLOAD);
 #endif
 
@@ -5223,7 +5227,11 @@ static int hdd_extscan_passpoint_fill_network_list(
 			hddLog(LOGE, FL("attr realm failed"));
 			return -EINVAL;
 		}
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
+		len = nla_strscpy(req_msg->networks[index].realm,
+#else
 		len = nla_strlcpy(req_msg->networks[index].realm,
+#endif
 				  network[PARAM_REALM],
 				  SIR_PASSPOINT_REALM_LEN);
 		/* Don't send partial realm to firmware */
@@ -16779,8 +16787,12 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     wiphy->vendor_events = wlan_hdd_cfg80211_vendor_events;
     wiphy->n_vendor_events = ARRAY_SIZE(wlan_hdd_cfg80211_vendor_events);
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0)) || \
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(4,17,0)) || \
     defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
+    if (pCfg->enableDFSMasterCap) {
+        wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_DFS_OFFLOAD);
+    }
+#else
     if (pCfg->enableDFSMasterCap) {
         wiphy->flags |= WIPHY_FLAG_DFS_OFFLOAD;
     }
@@ -17557,8 +17569,13 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
     wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
                           WLAN_EID_INTERWORKING);
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,15,0))
+    wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
+                          WLAN_EID_TX_POWER_ENVELOPE);
+#else
     wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
                           WLAN_EID_VHT_TX_POWER_ENVELOPE);
+#endif
     wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
                           IEEE80211_ELEMID_RSNXE);
     if (0 != wlan_hdd_add_ie(pHostapdAdapter, genie,
@@ -19533,8 +19550,14 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
  *
  * Return: zero for success non-zero for failure
  */
+#ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
+static int wlan_hdd_cfg80211_stop_ap(struct wiphy *wiphy,
+				     struct net_device *dev,
+				     unsigned int link_id)
+#else
 static int wlan_hdd_cfg80211_stop_ap(struct wiphy *wiphy,
 					struct net_device *dev)
+#endif
 {
 	int ret;
 
@@ -20150,11 +20173,10 @@ static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
 /* FUNCTION: wlan_hdd_change_country_code_cd
 *  to wait for country code completion
 */
-void* wlan_hdd_change_country_code_cb(void *pAdapter)
+void wlan_hdd_change_country_code_cb(void *pAdapter)
 {
     hdd_adapter_t *call_back_pAdapter = pAdapter;
     complete(&call_back_pAdapter->change_country_code);
-    return NULL;
 }
 
 /*
@@ -20317,7 +20339,6 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                 hddLog(LOG1, FL("Setting country code from INI"));
                 init_completion(&pAdapter->change_country_code);
                 hstatus = sme_ChangeCountryCode(pHddCtx->hHal,
-                                     (void *)(tSmeChangeCountryCallback)
                                       wlan_hdd_change_country_code_cb,
                                       pConfig->apCntryCode, pAdapter,
                                       pHddCtx->pvosContext,

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2012-2019, 2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1808,8 +1808,10 @@ hdd_parse_get_ibss_peer_info(tANI_U8 *pValue, v_MACADDR_t *pPeerMacAddr)
 }
 
 #ifdef IPA_UC_STA_OFFLOAD
-static void hdd_set_thermal_level_cb(hdd_context_t *pHddCtx, u_int8_t level)
+static void hdd_set_thermal_level_cb(void *pContext, u_int8_t level)
 {
+   hdd_context_t *pHddCtx = (hdd_context_t *)pContext;
+
    /* Change IPA to SW path when throttle level greater than 0 */
    if (level > THROTTLE_LEVEL_0)
       hdd_ipa_send_mcc_scc_msg(pHddCtx, TRUE);
@@ -1818,7 +1820,7 @@ static void hdd_set_thermal_level_cb(hdd_context_t *pHddCtx, u_int8_t level)
       hdd_ipa_send_mcc_scc_msg(pHddCtx, pHddCtx->mcc_mode);
 }
 #else
-static void hdd_set_thermal_level_cb(hdd_context_t *pHddCtx, u_int8_t level)
+static void hdd_set_thermal_level_cb(void *pContext, u_int8_t level)
 {
 }
 #endif
@@ -4575,7 +4577,7 @@ uint8_t hdd_is_mcc_in_24G(hdd_context_t *hdd_ctx)
 		hdd_adapter = adapter_node->pAdapter;
 
 		if (!((hdd_adapter->device_mode >= WLAN_HDD_INFRA_STATION)
-					|| (hdd_adapter->device_mode
+					&& (hdd_adapter->device_mode
 						<= WLAN_HDD_P2P_GO))) {
 			/* skip for other adapters */
 			status = hdd_get_next_adapter(hdd_ctx,
@@ -5824,7 +5826,6 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 
            status =
               sme_ChangeCountryCode(pHddCtx->hHal,
-                                    (void *)(tSmeChangeCountryCallback)
                                     wlan_hdd_change_country_code_callback,
                                     country_code, pAdapter,
                                     pHddCtx->pvosContext,
@@ -8575,7 +8576,7 @@ exit:
 }
 
 #ifdef CONFIG_COMPAT
-static int hdd_driver_compat_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
+static int hdd_driver_compat_ioctl(hdd_adapter_t *pAdapter, void __user *data)
 {
    struct {
       compat_uptr_t buf;
@@ -8589,7 +8590,7 @@ static int hdd_driver_compat_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
     * Note that pAdapter and ifr have already been verified by caller,
     * and HDD context has also been validated
     */
-   if (copy_from_user(&compat_priv_data, ifr->ifr_data,
+   if (copy_from_user(&compat_priv_data, data,
                       sizeof(compat_priv_data))) {
        ret = -EFAULT;
        goto exit;
@@ -8602,14 +8603,14 @@ static int hdd_driver_compat_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
    return ret;
 }
 #else /* CONFIG_COMPAT */
-static int hdd_driver_compat_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
+static int hdd_driver_compat_ioctl(hdd_adapter_t *pAdapter, void __user *data)
 {
    /* will never be invoked */
    return 0;
 }
 #endif /* CONFIG_COMPAT */
 
-static int hdd_driver_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
+static int hdd_driver_ioctl(hdd_adapter_t *pAdapter, void __user *data)
 {
    hdd_priv_data_t priv_data;
    int ret = 0;
@@ -8618,7 +8619,7 @@ static int hdd_driver_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
     * Note that pAdapter and ifr have already been verified by caller,
     * and HDD context has also been validated
     */
-   if (copy_from_user(&priv_data, ifr->ifr_data, sizeof(priv_data))) {
+   if (copy_from_user(&priv_data, data, sizeof(priv_data))) {
        ret = -EFAULT;
    } else {
       ret = hdd_driver_command(pAdapter, &priv_data);
@@ -8634,7 +8635,7 @@ static int hdd_driver_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
  *
  * Return: 0 for success and error number for failure.
  */
-static int __hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
+static int __hdd_ioctl(struct net_device *dev, void __user *data, int cmd)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    hdd_context_t *pHddCtx;
@@ -8649,7 +8650,7 @@ static int __hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
       goto exit;
    }
 
-   if ((!ifr) || (!ifr->ifr_data))
+   if (!data)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                  "%s: invalid data", __func__);
@@ -8660,7 +8661,7 @@ static int __hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 #if  defined(QCA_WIFI_FTM) && defined(LINUX_QCMBR)
    if (VOS_FTM_MODE == hdd_get_conparam()) {
        if (SIOCIOCTLTX99 == cmd) {
-           ret = wlan_hdd_qcmbr_unified_ioctl(pAdapter, ifr);
+           ret = wlan_hdd_qcmbr_unified_ioctl(pAdapter, data);
            goto exit;
        }
    }
@@ -8680,9 +8681,9 @@ static int __hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 #else
       if (is_compat_task())
 #endif
-         ret = hdd_driver_compat_ioctl(pAdapter, ifr);
+         ret = hdd_driver_compat_ioctl(pAdapter, data);
       else
-         ret = hdd_driver_ioctl(pAdapter, ifr);
+         ret = hdd_driver_ioctl(pAdapter, data);
       break;
    default:
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: unknown ioctl %d",
@@ -8703,17 +8704,32 @@ static int __hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
  *
  * Return: 0 for success and error number for failure.
  */
-static int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+static int
+hdd_dev_private_ioctl(struct net_device *dev, struct ifreq *ifr,
+		      void __user *data, int cmd)
 {
 	int ret;
 
 	vos_ssr_protect(__func__);
-	ret = __hdd_ioctl(dev, ifr, cmd);
+	ret = __hdd_ioctl(dev, data, cmd);
 	vos_ssr_unprotect(__func__);
 
 	return ret;
 }
+#else
+static int
+hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
+{
+	int ret;
 
+	vos_ssr_protect(__func__);
+	ret = __hdd_ioctl(dev, ifr->ifr_data, cmd);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+#endif
 
 /*
  * Mac address for multiple virtual interface is found as following
@@ -10458,7 +10474,7 @@ void hdd_full_pwr_cbk(void *callbackContext, eHalStatus status)
    hdd_context_t *pHddCtx = (hdd_context_t*)callbackContext;
 
    hddLog(VOS_TRACE_LEVEL_INFO_HIGH,"HDD full Power callback status = %d", status);
-   if(&pHddCtx->full_pwr_comp_var)
+   if(pHddCtx)
    {
       complete(&pHddCtx->full_pwr_comp_var);
    }
@@ -10984,7 +11000,11 @@ static struct net_device_ops wlan_drv_ops = {
       .ndo_start_xmit = hdd_hard_start_xmit,
       .ndo_tx_timeout = hdd_tx_timeout,
       .ndo_get_stats = hdd_stats,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+      .ndo_siocdevprivate = hdd_dev_private_ioctl,
+#else
       .ndo_do_ioctl = hdd_ioctl,
+#endif
       .ndo_set_mac_address = hdd_set_mac_address,
       .ndo_select_queue    = hdd_select_queue,
 #ifdef WLAN_FEATURE_PACKET_FILTERING
@@ -13448,7 +13468,11 @@ static void hdd_connect_done(struct net_device *dev, const u8 *bssid,
     struct cfg80211_connect_resp_params fils_params;
     vos_mem_zero(&fils_params, sizeof(fils_params));
 
+#ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
+    fils_params.links[0].bssid = bssid;
+#else
     fils_params.bssid = bssid;
+#endif
     if (!roam_fils_params) {
         fils_params.status = WLAN_STATUS_UNSPECIFIED_FAILURE;
         hdd_populate_fils_params(&fils_params, NULL, 0, NULL,
@@ -13460,7 +13484,11 @@ static void hdd_connect_done(struct net_device *dev, const u8 *bssid,
         fils_params.req_ie_len = req_ie_len;
         fils_params.resp_ie = resp_ie;
         fils_params.resp_ie_len = resp_ie_len;
+#ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
+        fils_params.links[0].bss = bss;
+#else
         fils_params.bss = bss;
+#endif
         hdd_populate_fils_params(&fils_params, roam_fils_params->kek,
                      roam_fils_params->kek_len,
                      roam_fils_params->fils_pmk,
@@ -17761,7 +17789,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       hdd_checkandupdate_dfssetting(pAdapter, country_code);
 
       ret = sme_ChangeCountryCode(pHddCtx->hHal,
-            (void *)(tSmeChangeCountryCallback)
             wlan_hdd_change_country_code_callback,
             country_code, pAdapter, pHddCtx->pvosContext, eSIR_TRUE, eSIR_TRUE);
       if (eHAL_STATUS_SUCCESS == ret)
@@ -18000,7 +18027,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    /* Plug in set thermal level callback */
    sme_add_set_thermal_level_callback(pHddCtx->hHal,
-                     (tSmeSetThermalLevelCallback)hdd_set_thermal_level_cb);
+                     hdd_set_thermal_level_cb);
 
    sme_add_thermal_temperature_ind_callback(pHddCtx->hHal,
                     (tSmeThermalTempIndCb)hdd_thermal_temp_ind_event_cb);

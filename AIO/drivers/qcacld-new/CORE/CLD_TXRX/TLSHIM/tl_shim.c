@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -989,9 +990,10 @@ static void tl_shim_flush_rx_frames(void *vos_ctx,
 	clear_bit(TLSHIM_FLUSH_CACHE_IN_PROGRESS, &sta_info->flags);
 }
 
-static void tlshim_data_rx_cb(struct txrx_tl_shim_ctx *tl_shim,
-			      adf_nbuf_t buf_list, u_int16_t staid)
+static void tlshim_data_rx_cb(void *context, void *rxpkt, u_int16_t staid)
 {
+	struct txrx_tl_shim_ctx *tl_shim = (struct txrx_tl_shim_ctx *)context;
+	adf_nbuf_t buf_list = (adf_nbuf_t)rxpkt;
 	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, tl_shim);
 	struct tlshim_sta_info *sta_info;
 	adf_nbuf_t buf, next_buf;
@@ -1153,8 +1155,7 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 					TLSHIM_LOGW("No available Rx message buffer");
 					goto drop_rx_buf;
 				}
-				pkt->callback = (vos_tlshim_cb)
-						tlshim_data_rx_cb;
+				pkt->callback = tlshim_data_rx_cb;
 				pkt->context = (void *) tl_shim;
 				pkt->Rxpkt = (void *) rx_buf_list;
 				pkt->staId = staid;

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -167,6 +168,14 @@ static int ol_get_fw_files_for_target(struct ol_fw_files *pfw_files,
 #ifdef FW_RAM_DUMP_TO_FILE
 #define GET_INODE_FROM_FILEP(filp) ((filp)->f_path.dentry->d_inode)
 
+#if (defined(__ANDROID_COMMON_KERNEL__) && \
+	(LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)))
+int _readwrite_file(const char *filename, char *rbuf,
+	const char *wbuf, size_t length, int mode)
+{
+	return -ENOTSUPP;
+}
+#else
 int _readwrite_file(const char *filename, char *rbuf,
 	const char *wbuf, size_t length, int mode)
 {
@@ -232,6 +241,7 @@ int _readwrite_file(const char *filename, char *rbuf,
 	set_fs(oldfs);
 	return ret;
 }
+#endif
 
 #define CRASH_DUMP_PATH "/var/"
 #define CRASH_DUMP_FILE "/var/cld_fwcrash.log"

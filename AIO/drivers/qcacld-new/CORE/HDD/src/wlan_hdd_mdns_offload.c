@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -141,7 +142,7 @@ static void wlan_hdd_mdns_format_response_u16(uint16_t value,
 {
 	uint8_t val_u8;
 
-	if ((resp_info == NULL) || (resp_info->resp_data == NULL))
+	if (resp_info == NULL)
 		return;
 	val_u8 = (value & 0xff00) >> 8;
 	resp_info->resp_data[resp_info->resp_len++] = val_u8;
@@ -161,7 +162,7 @@ static void wlan_hdd_mdns_format_response_u32(uint32_t value,
 {
 	uint8_t val_u8;
 
-	if ((resp_info == NULL) || (resp_info->resp_data == NULL))
+	if (resp_info == NULL)
 		return;
 	val_u8 = (value & 0xff000000) >> 24;
 	resp_info->resp_data[resp_info->resp_len++] = val_u8;

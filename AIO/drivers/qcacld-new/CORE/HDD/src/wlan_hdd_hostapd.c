@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2012-2020 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -857,7 +857,7 @@ exit:
 
 #ifdef CONFIG_COMPAT
 static int hdd_hostapd_driver_compat_ioctl(hdd_adapter_t *pAdapter,
-                                           struct ifreq *ifr)
+                                           void __user *data)
 {
    struct {
       compat_uptr_t buf;
@@ -871,7 +871,7 @@ static int hdd_hostapd_driver_compat_ioctl(hdd_adapter_t *pAdapter,
     * Note that pAdapter and ifr have already been verified by caller,
     * and HDD context has also been validated
     */
-   if (copy_from_user(&compat_priv_data, ifr->ifr_data,
+   if (copy_from_user(&compat_priv_data, data,
                       sizeof(compat_priv_data))) {
        ret = -EFAULT;
        goto exit;
@@ -885,14 +885,14 @@ static int hdd_hostapd_driver_compat_ioctl(hdd_adapter_t *pAdapter,
 }
 #else /* CONFIG_COMPAT */
 static int hdd_hostapd_driver_compat_ioctl(hdd_adapter_t *pAdapter,
-                                           struct ifreq *ifr)
+                                           void __user *data)
 {
    /* will never be invoked */
    return 0;
 }
 #endif /* CONFIG_COMPAT */
 
-static int hdd_hostapd_driver_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
+static int hdd_hostapd_driver_ioctl(hdd_adapter_t *pAdapter, void __user *data)
 {
    hdd_priv_data_t priv_data;
    int ret = 0;
@@ -901,7 +901,7 @@ static int hdd_hostapd_driver_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
     * Note that pAdapter and ifr have already been verified by caller,
     * and HDD context has also been validated
     */
-   if (copy_from_user(&priv_data, ifr->ifr_data, sizeof(priv_data))) {
+   if (copy_from_user(&priv_data, data, sizeof(priv_data))) {
       ret = -EFAULT;
    } else {
       ret = hdd_hostapd_driver_command(pAdapter, &priv_data);
@@ -918,7 +918,7 @@ static int hdd_hostapd_driver_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
  * Return; 0 on success, error number otherwise
  */
 static int __hdd_hostapd_ioctl(struct net_device *dev,
-				struct ifreq *ifr, int cmd)
+				void __user *data, int cmd)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    hdd_context_t *pHddCtx;
@@ -933,7 +933,7 @@ static int __hdd_hostapd_ioctl(struct net_device *dev,
       goto exit;
    }
 
-   if ((!ifr) || (!ifr->ifr_data))
+   if (!data)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                 FL("ifr or ifr->ifr_data is NULL"));
@@ -955,9 +955,9 @@ static int __hdd_hostapd_ioctl(struct net_device *dev,
 #else
       if (is_compat_task())
 #endif
-         ret = hdd_hostapd_driver_compat_ioctl(pAdapter, ifr);
+         ret = hdd_hostapd_driver_compat_ioctl(pAdapter, data);
       else
-         ret = hdd_hostapd_driver_ioctl(pAdapter, ifr);
+         ret = hdd_hostapd_driver_ioctl(pAdapter, data);
       break;
    default:
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: unknown ioctl %d",
@@ -970,6 +970,20 @@ static int __hdd_hostapd_ioctl(struct net_device *dev,
    return ret;
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+static int
+hdd_hostapd_dev_private_ioctl(struct net_device *dev, struct ifreq *ifr,
+			      void __user *data, int cmd)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __hdd_hostapd_ioctl(dev, data, cmd);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+#else
 /**
  * hdd_hostapd_ioctl() - SSR wrapper for __hdd_hostapd_ioctl
  * @dev: pointer to net_device
@@ -984,12 +998,12 @@ static int hdd_hostapd_ioctl(struct net_device *dev,
 	int ret;
 
 	vos_ssr_protect(__func__);
-	ret = __hdd_hostapd_ioctl(dev, ifr, cmd);
+	ret = __hdd_hostapd_ioctl(dev, ifr->ifr_data, cmd);
 	vos_ssr_unprotect(__func__);
 
 	return ret;
 }
-
+#endif
 
 #ifdef QCA_HT_2040_COEX
 VOS_STATUS hdd_set_sap_ht2040_mode(hdd_adapter_t *pHostapdAdapter,
@@ -1482,6 +1496,24 @@ hdd_update_chandef(hdd_adapter_t *hostapd_adapter,
 }
 #endif
 
+#ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
+static inline
+void wlan_cfg80211_ch_switch_notify(struct net_device *dev,
+				    struct cfg80211_chan_def *chandef,
+				    unsigned int link_id)
+{
+	cfg80211_ch_switch_notify(dev, chandef, link_id);
+}
+#else
+static inline
+void wlan_cfg80211_ch_switch_notify(struct net_device *dev,
+				    struct cfg80211_chan_def *chandef,
+				    unsigned int link_id)
+{
+	cfg80211_ch_switch_notify(dev, chandef);
+}
+#endif
+
 /**
  * hdd_chan_change_notify() - Function to notify hostapd about channel change
  * @hostapd_adapter	hostapd adapter
@@ -1568,7 +1600,7 @@ VOS_STATUS hdd_chan_change_notify(hdd_adapter_t *hostapd_adapter,
 	    (phy_mode == eCSR_DOT11_MODE_11ac_ONLY))
 		hdd_update_chandef(hostapd_adapter, &chandef, cb_mode);
 
-	cfg80211_ch_switch_notify(dev, &chandef);
+	wlan_cfg80211_ch_switch_notify(dev, &chandef, 0);
 
 	return VOS_STATUS_SUCCESS;
 }
@@ -7217,12 +7249,12 @@ static int __iw_get_ap_freq(struct net_device *dev,
  */
 static int iw_get_ap_freq(struct net_device *dev,
 			  struct iw_request_info *info,
-			  struct iw_freq *wrqu, char *extra)
+			  union iwreq_data *wrqu, char *extra)
 {
 	int ret;
 
 	vos_ssr_protect(__func__);
-	ret = __iw_get_ap_freq(dev, info, wrqu, extra);
+	ret = __iw_get_ap_freq(dev, info, &wrqu->freq, extra);
 	vos_ssr_unprotect(__func__);
 
 	return ret;
@@ -7996,61 +8028,61 @@ iw_get_peer_rssi(struct net_device *dev, struct iw_request_info *info,
 
 static const iw_handler      hostapd_handler[] =
 {
-   (iw_handler) NULL,           /* SIOCSIWCOMMIT */
-   (iw_handler) NULL,           /* SIOCGIWNAME */
-   (iw_handler) NULL,           /* SIOCSIWNWID */
-   (iw_handler) NULL,           /* SIOCGIWNWID */
-   (iw_handler) NULL,           /* SIOCSIWFREQ */
-   (iw_handler) iw_get_ap_freq,    /* SIOCGIWFREQ */
-   (iw_handler) NULL,           /* SIOCSIWMODE */
-   (iw_handler) NULL,           /* SIOCGIWMODE */
-   (iw_handler) NULL,           /* SIOCSIWSENS */
-   (iw_handler) NULL,           /* SIOCGIWSENS */
-   (iw_handler) NULL,           /* SIOCSIWRANGE */
-   (iw_handler) NULL,           /* SIOCGIWRANGE */
-   (iw_handler) NULL,           /* SIOCSIWPRIV */
-   (iw_handler) NULL,           /* SIOCGIWPRIV */
-   (iw_handler) NULL,           /* SIOCSIWSTATS */
-   (iw_handler) NULL,           /* SIOCGIWSTATS */
-   (iw_handler) NULL,           /* SIOCSIWSPY */
-   (iw_handler) NULL,           /* SIOCGIWSPY */
-   (iw_handler) NULL,           /* SIOCSIWTHRSPY */
-   (iw_handler) NULL,           /* SIOCGIWTHRSPY */
-   (iw_handler) NULL,           /* SIOCSIWAP */
-   (iw_handler) NULL,           /* SIOCGIWAP */
-   (iw_handler) iw_set_ap_mlme,    /* SIOCSIWMLME */
-   (iw_handler) NULL,           /* SIOCGIWAPLIST */
-   (iw_handler) NULL,           /* SIOCSIWSCAN */
-   (iw_handler) NULL,           /* SIOCGIWSCAN */
-   (iw_handler) NULL,           /* SIOCSIWESSID */
-   (iw_handler) NULL,           /* SIOCGIWESSID */
-   (iw_handler) NULL,           /* SIOCSIWNICKN */
-   (iw_handler) NULL,           /* SIOCGIWNICKN */
-   (iw_handler) NULL,           /* -- hole -- */
-   (iw_handler) NULL,           /* -- hole -- */
-   (iw_handler) NULL,           /* SIOCSIWRATE */
-   (iw_handler) NULL,           /* SIOCGIWRATE */
-   (iw_handler) NULL,           /* SIOCSIWRTS */
-   (iw_handler) iw_get_ap_rts_threshold,     /* SIOCGIWRTS */
-   (iw_handler) NULL,           /* SIOCSIWFRAG */
-   (iw_handler) iw_get_ap_frag_threshold,    /* SIOCGIWFRAG */
-   (iw_handler) NULL,           /* SIOCSIWTXPOW */
-   (iw_handler) NULL,           /* SIOCGIWTXPOW */
-   (iw_handler) NULL,           /* SIOCSIWRETRY */
-   (iw_handler) NULL,           /* SIOCGIWRETRY */
-   (iw_handler) NULL,           /* SIOCSIWENCODE */
-   (iw_handler) NULL,           /* SIOCGIWENCODE */
-   (iw_handler) NULL,           /* SIOCSIWPOWER */
-   (iw_handler) NULL,           /* SIOCGIWPOWER */
-   (iw_handler) NULL,           /* -- hole -- */
-   (iw_handler) NULL,           /* -- hole -- */
-   (iw_handler) iw_set_ap_genie,     /* SIOCSIWGENIE */
-   (iw_handler) NULL,           /* SIOCGIWGENIE */
-   (iw_handler) iw_set_auth_hostap,    /* SIOCSIWAUTH */
-   (iw_handler) NULL,           /* SIOCGIWAUTH */
-   (iw_handler) iw_set_ap_encodeext,     /* SIOCSIWENCODEEXT */
-   (iw_handler) NULL,           /* SIOCGIWENCODEEXT */
-   (iw_handler) NULL,           /* SIOCSIWPMKSA */
+   NULL,           /* SIOCSIWCOMMIT */
+   NULL,           /* SIOCGIWNAME */
+   NULL,           /* SIOCSIWNWID */
+   NULL,           /* SIOCGIWNWID */
+   NULL,           /* SIOCSIWFREQ */
+   iw_get_ap_freq,    /* SIOCGIWFREQ */
+   NULL,           /* SIOCSIWMODE */
+   NULL,           /* SIOCGIWMODE */
+   NULL,           /* SIOCSIWSENS */
+   NULL,           /* SIOCGIWSENS */
+   NULL,           /* SIOCSIWRANGE */
+   NULL,           /* SIOCGIWRANGE */
+   NULL,           /* SIOCSIWPRIV */
+   NULL,           /* SIOCGIWPRIV */
+   NULL,           /* SIOCSIWSTATS */
+   NULL,           /* SIOCGIWSTATS */
+   NULL,           /* SIOCSIWSPY */
+   NULL,           /* SIOCGIWSPY */
+   NULL,           /* SIOCSIWTHRSPY */
+   NULL,           /* SIOCGIWTHRSPY */
+   NULL,           /* SIOCSIWAP */
+   NULL,           /* SIOCGIWAP */
+   iw_set_ap_mlme,    /* SIOCSIWMLME */
+   NULL,           /* SIOCGIWAPLIST */
+   NULL,           /* SIOCSIWSCAN */
+   NULL,           /* SIOCGIWSCAN */
+   NULL,           /* SIOCSIWESSID */
+   NULL,           /* SIOCGIWESSID */
+   NULL,           /* SIOCSIWNICKN */
+   NULL,           /* SIOCGIWNICKN */
+   NULL,           /* -- hole -- */
+   NULL,           /* -- hole -- */
+   NULL,           /* SIOCSIWRATE */
+   NULL,           /* SIOCGIWRATE */
+   NULL,           /* SIOCSIWRTS */
+   iw_get_ap_rts_threshold,     /* SIOCGIWRTS */
+   NULL,           /* SIOCSIWFRAG */
+   iw_get_ap_frag_threshold,    /* SIOCGIWFRAG */
+   NULL,           /* SIOCSIWTXPOW */
+   NULL,           /* SIOCGIWTXPOW */
+   NULL,           /* SIOCSIWRETRY */
+   NULL,           /* SIOCGIWRETRY */
+   NULL,           /* SIOCSIWENCODE */
+   NULL,           /* SIOCGIWENCODE */
+   NULL,           /* SIOCSIWPOWER */
+   NULL,           /* SIOCGIWPOWER */
+   NULL,           /* -- hole -- */
+   NULL,           /* -- hole -- */
+   iw_set_ap_genie,     /* SIOCSIWGENIE */
+   NULL,           /* SIOCGIWGENIE */
+   iw_set_auth_hostap,    /* SIOCSIWAUTH */
+   NULL,           /* SIOCGIWAUTH */
+   iw_set_ap_encodeext,     /* SIOCSIWENCODEEXT */
+   NULL,           /* SIOCGIWENCODEEXT */
+   NULL,           /* SIOCSIWPMKSA */
 };
 
 /*
@@ -8742,7 +8774,11 @@ struct net_device_ops net_ops_struct  = {
     .ndo_tx_timeout = hdd_softap_tx_timeout,
     .ndo_get_stats = hdd_softap_stats,
     .ndo_set_mac_address = hdd_hostapd_set_mac_address,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+    .ndo_siocdevprivate = hdd_hostapd_dev_private_ioctl,
+#else
     .ndo_do_ioctl = hdd_hostapd_ioctl,
+#endif
     .ndo_change_mtu = hdd_hostapd_change_mtu,
     .ndo_select_queue = hdd_hostapd_select_queue,
  };

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -664,7 +665,7 @@ uint8_t pe_count_session_with_sme_session_id(tpAniSirGlobal mac_ctx,
         limLog(pMac, LOGE, FL("Invalid sessionId: %d"), sessionId);
         return(NULL);
     }
-    if((pMac->lim.gpSession[sessionId].valid == TRUE))
+    if(pMac->lim.gpSession[sessionId].valid == TRUE)
     {
         return(&pMac->lim.gpSession[sessionId]);
     }

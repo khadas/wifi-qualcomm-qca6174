@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -31,6 +32,10 @@
 
 #ifdef CONFIG_CNSS
 #include <net/cnss.h>
+#endif
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
+#define PM_QOS_CPU_DMA_LATENCY 1
 #endif
 
 #define DISABLE_KRAIT_IDLE_PS_VAL    1
@@ -157,10 +162,28 @@ static inline int vos_wlan_pm_control(bool vote)
 static inline void vos_lock_pm_sem(void) { return; }
 static inline void vos_release_pm_sem(void) { return; }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
+#if BITS_PER_LONG == 64
+static inline void vos_get_boottime_ts(struct timespec *ts)
+{
+	ktime_get_ts64((struct timespec64*)ts);
+}
+#else
+static inline void vos_get_boottime_ts(struct timespec *ts)
+{
+	struct timespec64 ts64;
+
+	ktime_get_ts64(&ts64);
+	ts->tv_sec = (time_t)ts64.tv_sec;
+	ts->tv_nsec = ts64.tv_nsec;
+}
+#endif /* BITS_PER_LONG == 64 */
+#else
 static inline void vos_get_boottime_ts(struct timespec *ts)
 {
 	ktime_get_ts(ts);
 }
+#endif
 
 static inline void *vos_get_virt_ramdump_mem(struct device *dev,
 						unsigned long *size)

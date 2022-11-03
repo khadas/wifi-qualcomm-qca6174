@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2148,6 +2149,23 @@ static inline int hdd_send_roam_auth_event(hdd_context_t *hdd_ctx,
  */
 #if defined CFG80211_ROAMED_API_UNIFIED || \
        (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0))
+
+#ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
+static
+void hdd_copy_roamed_info(struct cfg80211_roam_info *info,
+			  struct cfg80211_bss *bss)
+{
+        info->links[0].bss = bss;
+}
+#else
+static
+void hdd_copy_roamed_info(struct cfg80211_roam_info *info,
+			  struct cfg80211_bss *bss)
+{
+        info->bss = bss;
+}
+#endif
+
 static void hdd_send_roamed_ind(struct net_device *dev,
 				struct cfg80211_bss *bss, const uint8_t *req_ie,
 				size_t req_ie_len, const uint8_t *resp_ie,
@@ -2155,7 +2173,7 @@ static void hdd_send_roamed_ind(struct net_device *dev,
 {
 	struct cfg80211_roam_info info = {0};
 
-	info.bss = bss;
+	hdd_copy_roamed_info(&info, bss);
 	info.req_ie = req_ie;
 	info.req_ie_len = req_ie_len;
 	info.resp_ie = resp_ie;
@@ -5568,7 +5586,7 @@ int hdd_set_csr_auth_type ( hdd_adapter_t  *pAdapter, eCsrAuthType RSNAuthType)
                 hddLog( LOG1, "%s: set authType to CCKM WPA. AKM also 802.1X.", __func__);
                 pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_CCKM_WPA;
             } else
-            if ((RSNAuthType == eCSR_AUTH_TYPE_CCKM_WPA)) {
+            if (RSNAuthType == eCSR_AUTH_TYPE_CCKM_WPA) {
                 hddLog( LOG1, "%s: Last chance to set authType to CCKM WPA.", __func__);
                 pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_CCKM_WPA;
             } else
@@ -5592,7 +5610,7 @@ int hdd_set_csr_auth_type ( hdd_adapter_t  *pAdapter, eCsrAuthType RSNAuthType)
                 hddLog( LOG1, "%s: set authType to CCKM RSN. AKM also 802.1X.", __func__);
                 pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_CCKM_RSN;
             } else
-            if ((RSNAuthType == eCSR_AUTH_TYPE_CCKM_RSN)) {
+            if (RSNAuthType == eCSR_AUTH_TYPE_CCKM_RSN) {
                 hddLog( LOG1, "%s: Last chance to set authType to CCKM RSN.", __func__);
                 pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_CCKM_RSN;
             } else
@@ -5949,12 +5967,12 @@ static int __iw_get_essid(struct net_device *dev,
  */
 int iw_get_essid(struct net_device *dev,
 		 struct iw_request_info *info,
-		 struct iw_point *wrqu, char *extra)
+		 union iwreq_data *wrqu, char *extra)
 {
 	int ret;
 
 	vos_ssr_protect(__func__);
-	ret = __iw_get_essid(dev, info, wrqu, extra);
+	ret = __iw_get_essid(dev, info, (struct iw_point *)wrqu, extra);
 	vos_ssr_unprotect(__func__);
 
 	return ret;

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2429,7 +2430,7 @@ typedef struct sAniChangeCountryCodeReq
     tANI_U8                 countryCode[WNI_CFG_COUNTRY_CODE_LEN];   //3 char country code
     tAniBool                countryFromUserSpace;
     tAniBool                sendRegHint;  //TRUE if we want to send hint to NL80211
-    void                    *changeCCCallback;
+    void                    (*changeCCCallback)(void *);
     void                    *pDevContext; //device context
     void                    *pVosContext; //voss context
 

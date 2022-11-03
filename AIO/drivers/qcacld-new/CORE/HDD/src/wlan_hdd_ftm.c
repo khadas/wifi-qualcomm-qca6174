@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1000,7 +1001,7 @@ static int wlan_hdd_qcmbr_command(hdd_adapter_t *pAdapter, qcmbr_data_t *pqcmbr_
 
 #ifdef CONFIG_COMPAT
 static int wlan_hdd_qcmbr_compat_ioctl(hdd_adapter_t *pAdapter,
-                                       struct ifreq *ifr)
+                                       void __user *data)
 {
     qcmbr_data_t *qcmbr_data;
     int ret = 0;
@@ -1009,14 +1010,14 @@ static int wlan_hdd_qcmbr_compat_ioctl(hdd_adapter_t *pAdapter,
     if (qcmbr_data == NULL)
         return -ENOMEM;
 
-    if (copy_from_user(qcmbr_data, ifr->ifr_data, sizeof(*qcmbr_data))) {
+    if (copy_from_user(qcmbr_data, data, sizeof(*qcmbr_data))) {
         ret = -EFAULT;
         goto exit;
     }
 
     ret = wlan_hdd_qcmbr_command(pAdapter, qcmbr_data);
     if ((ret == 0) && qcmbr_data->copy_to_user) {
-        ret = copy_to_user(ifr->ifr_data, qcmbr_data->buf,
+        ret = copy_to_user(data, qcmbr_data->buf,
                            (MAX_UTF_LENGTH + 4));
     }
 
@@ -1026,13 +1027,13 @@ exit:
 }
 #else /* CONFIG_COMPAT */
 static int wlan_hdd_qcmbr_compat_ioctl(hdd_adapter_t *pAdapter,
-                                       struct ifreq *ifr)
+                                       void __user *data)
 {
    return 0;
 }
 #endif /* CONFIG_COMPAT */
 
-static int wlan_hdd_qcmbr_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
+static int wlan_hdd_qcmbr_ioctl(hdd_adapter_t *pAdapter, void __user *data)
 {
     qcmbr_data_t *qcmbr_data;
     int ret = 0;
@@ -1041,14 +1042,14 @@ static int wlan_hdd_qcmbr_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
     if (qcmbr_data == NULL)
         return -ENOMEM;
 
-    if (copy_from_user(qcmbr_data, ifr->ifr_data, sizeof(*qcmbr_data))) {
+    if (copy_from_user(qcmbr_data, data, sizeof(*qcmbr_data))) {
         ret = -EFAULT;
         goto exit;
     }
 
     ret = wlan_hdd_qcmbr_command(pAdapter, qcmbr_data);
     if ((ret == 0) && qcmbr_data->copy_to_user) {
-        ret = copy_to_user(ifr->ifr_data, qcmbr_data->buf,
+        ret = copy_to_user(data, qcmbr_data->buf,
                            (MAX_UTF_LENGTH + 4));
     }
 
@@ -1057,7 +1058,7 @@ exit:
     return ret;
 }
 
-int wlan_hdd_qcmbr_unified_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
+int wlan_hdd_qcmbr_unified_ioctl(hdd_adapter_t *pAdapter, void __user *data)
 {
     int ret = 0;
 
@@ -1066,9 +1067,9 @@ int wlan_hdd_qcmbr_unified_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
 #else
     if (is_compat_task()) {
 #endif
-        ret = wlan_hdd_qcmbr_compat_ioctl(pAdapter, ifr);
+        ret = wlan_hdd_qcmbr_compat_ioctl(pAdapter, data);
     } else {
-        ret = wlan_hdd_qcmbr_ioctl(pAdapter, ifr);
+        ret = wlan_hdd_qcmbr_ioctl(pAdapter, data);
     }
 
     return ret;

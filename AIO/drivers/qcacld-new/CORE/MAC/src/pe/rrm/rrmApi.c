@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012-2017, 2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -221,7 +222,7 @@ rrmSetMaxTxPowerRsp ( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
    {
       for (i =0;i < pMac->lim.maxBssId;i++)
       {
-         if ( (pMac->lim.gpSession[i].valid == TRUE ))
+         if (pMac->lim.gpSession[i].valid == TRUE)
          {
             pSessionEntry = &pMac->lim.gpSession[i];
             rrmCacheMgmtTxPower ( pMac, pMaxTxParams->power, pSessionEntry );

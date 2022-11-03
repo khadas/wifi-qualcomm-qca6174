@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2014-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -139,5 +140,5 @@ void hddTraceDump(void *pMac, tpvosTraceRecord pRecord, tANI_U16 recIndex)
 
 void hddTraceInit()
 {
-	vosTraceRegister(VOS_MODULE_ID_HDD, (tpvosTraceCb) & hddTraceDump);
+	vosTraceRegister(VOS_MODULE_ID_HDD, hddTraceDump);
 }

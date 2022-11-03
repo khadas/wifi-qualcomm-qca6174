@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -46,6 +47,9 @@
 #include <net/cnss_prealloc.h>
 #endif
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0))
+#define FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
+#endif
 /* Packet Counter */
 static uint32_t nbuf_tx_mgmt[NBUF_TX_PKT_STATE_MAX];
 static uint32_t nbuf_tx_data[NBUF_TX_PKT_STATE_MAX];

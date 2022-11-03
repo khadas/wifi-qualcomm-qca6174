@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -95,15 +96,6 @@
 struct ol_txrx_pdev_t;
 struct ol_txrx_vdev_t;
 struct ol_txrx_peer_t;
-
-struct ol_pdev_t;
-typedef struct ol_pdev_t* ol_pdev_handle;
-
-struct ol_vdev_t;
-typedef struct ol_vdev_t* ol_vdev_handle;
-
-struct ol_peer_t;
-typedef struct ol_peer_t* ol_peer_handle;
 
 /* rx filter related */
 #define MAX_PRIVACY_FILTERS           4 /* max privacy filters */

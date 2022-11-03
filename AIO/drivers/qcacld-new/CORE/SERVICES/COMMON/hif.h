@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -368,8 +369,8 @@ typedef struct _HID_ACCESS_LOG {
 struct htc_callbacks {
     void      *context;     /* context to pass to the dsrhandler
                                note : rwCompletionHandler is provided the context passed to HIFReadWrite  */
-    int (* rwCompletionHandler)(void *rwContext, int status);
-    int (* dsrHandler)(void *context);
+    A_STATUS (* rwCompletionHandler)(void *rwContext, A_STATUS status);
+    A_STATUS (* dsrHandler)(void *context);
 };
 
 typedef struct osdrv_callbacks {

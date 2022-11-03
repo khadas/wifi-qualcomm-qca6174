@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -75,7 +76,6 @@
 struct ol_pl_os_dep_funcs *g_ol_pl_os_dep_funcs = NULL;
 #endif
 
-typedef void * hif_handle_t;
 typedef void * hif_softc_t;
 
 extern int hdd_wlan_startup(struct device *dev, void *hif_sc);
@@ -135,7 +135,7 @@ static inline void hif_release_ramdump_mem(unsigned long *address)
 }
 #endif
 #endif
-static A_STATUS
+static int
 ath_hif_sdio_probe(void *context, void *hif_handle)
 {
     int ret = 0;
@@ -293,7 +293,7 @@ ol_ath_sdio_configure(hif_softc_t hif_sc, struct net_device *dev, hif_handle_t *
     return ret;
 }
 
-static A_STATUS
+static int
 ath_hif_sdio_remove(void *context, void *hif_handle)
 {
     ENTER();
@@ -337,21 +337,21 @@ ath_hif_sdio_remove(void *context, void *hif_handle)
     return 0;
 }
 
-static A_STATUS
+static int
 ath_hif_sdio_suspend(void *context)
 {
 	pr_debug("%s TODO\n", __func__);
 	return 0;
 }
 
-static A_STATUS
+static int
 ath_hif_sdio_resume(void *context)
 {
 	pr_debug("%s TODO\n", __func__);
 	return 0;
 }
 
-static A_STATUS
+static int
 ath_hif_sdio_power_change(void *context, A_UINT32 config)
 {
     printk(KERN_INFO "ol_ath_sdio_power change TODO\n");

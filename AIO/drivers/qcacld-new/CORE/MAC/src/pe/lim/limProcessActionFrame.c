@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012-2014, 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1083,7 +1084,7 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
     tsinfo = delts.wmeTspecPresent ? &delts.tspec.tsinfo : &delts.tsinfo;
 
     // if no Admit Control, ignore the request
-    if ((tsinfo->traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA))
+    if (tsinfo->traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA)
     {
 
         if (upToAc(tsinfo->traffic.userPrio) >= MAX_NUM_AC)

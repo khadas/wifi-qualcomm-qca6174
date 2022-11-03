@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -209,8 +210,7 @@ static tANI_U8* smeTraceGetCommandString( tANI_U32 command )
             break;
     }
 }
-static void smeTraceDump(tpAniSirGlobal pMac, tpvosTraceRecord pRecord,
-                                                            tANI_U16 recIndex)
+static void smeTraceDump(void *pMac, tpvosTraceRecord pRecord, tANI_U16 recIndex)
 {
 	switch (pRecord->code) {
 	case TRACE_CODE_SME_COMMAND:
@@ -246,6 +246,6 @@ static void smeTraceDump(tpAniSirGlobal pMac, tpvosTraceRecord pRecord,
 
 void smeTraceInit(tpAniSirGlobal pMac)
 {
-    vosTraceRegister(VOS_MODULE_ID_SME, (tpvosTraceCb)&smeTraceDump);
+    vosTraceRegister(VOS_MODULE_ID_SME, smeTraceDump);
 }
 #endif
