@@ -65,9 +65,8 @@
 #include "wlan_hdd_main.h"
 #include "wlan_hdd_tx_rx.h"
 
-#if (defined(__ANDROID_COMMON_KERNEL__) && \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)) && \
-	(defined  IEEE80211_MLD_MAX_NUM_LINKS))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)) && \
+	(defined  IEEE80211_MLD_MAX_NUM_LINKS)
 #define CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT 1
 #endif
 
