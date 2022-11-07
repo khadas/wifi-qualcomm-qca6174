@@ -47,6 +47,19 @@
 #include <linux/workqueue.h>
 #include <linux/sched.h>
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
+#ifndef timespec
+#define timespec timespec64
+#define timespec_to_ns timespec64_to_ns
+#define getnstimeofday ktime_get_real_ts64
+#define do_gettimeofday ktime_get_real_ts64
+#define timeval_to_ns timespec64_to_ns
+#define timeval timespec64
+#endif
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0))
+#define do_gettimeofday getnstimeofday
+#endif
+
 enum cnss_bus_width_type {
 	CNSS_BUS_WIDTH_NONE,
 	CNSS_BUS_WIDTH_LOW,
@@ -174,7 +187,7 @@ static inline void vos_get_boottime_ts(struct timespec *ts)
 	struct timespec64 ts64;
 
 	ktime_get_ts64(&ts64);
-	ts->tv_sec = (time_t)ts64.tv_sec;
+	ts->tv_sec = ts64.tv_sec;
 	ts->tv_nsec = ts64.tv_nsec;
 }
 #endif /* BITS_PER_LONG == 64 */
