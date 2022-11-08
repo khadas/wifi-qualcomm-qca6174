@@ -175,6 +175,12 @@ int _readwrite_file(const char *filename, char *rbuf,
 {
 	return -ENOTSUPP;
 }
+#elif !defined(CONFIG_SET_FS)
+int _readwrite_file(const char *filename, char *rbuf,
+	const char *wbuf, size_t length, int mode)
+{
+	return -ENOTSUPP;
+}
 #else
 int _readwrite_file(const char *filename, char *rbuf,
 	const char *wbuf, size_t length, int mode)
