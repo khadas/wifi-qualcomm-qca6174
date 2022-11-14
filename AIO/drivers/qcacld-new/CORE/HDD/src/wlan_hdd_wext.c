@@ -912,6 +912,8 @@ void hdd_wlan_dump_stats(hdd_adapter_t *pAdapter, int value)
 }
 
 #ifdef CLD_REGDB
+static int g_ignore_regdb_dump_log = 1;
+
 void hdd_wlan_dump_cld_regdb(hdd_adapter_t *adapter)
 {
 	hdd_context_t *hdd_ctx;
@@ -919,6 +921,11 @@ void hdd_wlan_dump_cld_regdb(hdd_adapter_t *adapter)
 	uint32_t i;
 	uint32_t j;
 	struct ieee80211_supported_band *band;
+
+	if (g_ignore_regdb_dump_log) {
+		g_ignore_regdb_dump_log = 0;
+		return;
+	}
 
 	hdd_ctx = WLAN_HDD_GET_CTX(adapter);
 
