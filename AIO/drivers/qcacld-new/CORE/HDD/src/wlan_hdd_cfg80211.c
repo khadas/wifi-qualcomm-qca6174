@@ -114,6 +114,16 @@
 
 #include "wmi_unified_priv.h"
 
+#if ((LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 41)) && \
+   (defined CONFIG_AMLOGIC_KERNEL_VERSION))
+#include <linux/upstream_version.h>
+#if AML_KERNEL_VERSION >= 11
+#define CFG80211_ASSOC_FAILURE
+#endif
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
+#define CFG80211_ASSOC_FAILURE
+#endif
+
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
 #define FREQ_BASE_80211G          (2407)
@@ -25311,7 +25321,15 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
                             req->bssid, req->ssid,
                             req->ssid_len);
                 if (bss) {
+#ifdef CFG80211_ASSOC_FAILURE
+                    struct cfg80211_assoc_failure data = {
+                            .bss[0] = bss,
+                            .timeout = true,
+                    };
+                    cfg80211_assoc_failure(ndev, &data);
+#else
                     cfg80211_assoc_timeout(ndev, bss);
+#endif
                     return -ETIMEDOUT;
                 }
             }
