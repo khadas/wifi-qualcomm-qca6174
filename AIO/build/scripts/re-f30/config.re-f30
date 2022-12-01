@@ -96,4 +96,5 @@ else ifeq ($(IF_TYPE),SDIO)
     export CONFIG_WLAN_WAPI_MODE_11AC_DISABLE=y
     export CONFIG_WLAN_WOW_PULSE=y
     export CONFIG_TXRX_PERF=y
+    export CFG80211_CONNECT_BSS=y
 endif
