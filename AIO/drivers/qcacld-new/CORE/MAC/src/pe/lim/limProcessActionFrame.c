@@ -2072,6 +2072,7 @@ limProcessActionFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd)
               {
                 tpSirMacMgmtHdr     pHdr;
                 tANI_U8 P2POui[] = { 0x50, 0x6F, 0x9A, 0x09 };
+                tANI_U8 DPPOui[] = { 0x50, 0x6F, 0x9A, 0x1A };
 
                 pHdr = WDA_GET_RX_MAC_HEADER(pBd);
 
@@ -2080,6 +2081,12 @@ limProcessActionFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd)
                 {
                   /* Forward to the SME to HDD to wpa_supplicant */
                   // type is ACTION
+                  limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType,
+                      (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0,
+                      WDA_GET_RX_CH( pBd ), NULL, WDA_GET_RX_RSSI_RAW(pBd),
+                      RXMGMT_FLAG_NONE);
+                } else if (vos_mem_compare(pActionHdr->Oui, DPPOui, 4))
+                {
                   limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType,
                       (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0,
                       WDA_GET_RX_CH( pBd ), NULL, WDA_GET_RX_RSSI_RAW(pBd),
