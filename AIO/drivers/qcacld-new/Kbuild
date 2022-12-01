@@ -1062,6 +1062,7 @@ EXTRA_CFLAGS += -I$(KERNEL_SRC)/include/linux
 EXTRA_CFLAGS += -Wno-shift-count-negative
 EXTRA_CFLAGS += -Wno-shift-count-overflow
 EXTRA_CFLAGS += -Wno-enum-conversion
+EXTRA_CFLAGS += -Wno-unused-function
 
 CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DANI_LITTLE_BIT_ENDIAN \
