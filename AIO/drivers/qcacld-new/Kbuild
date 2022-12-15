@@ -1058,6 +1058,7 @@ OBJS +=		$(PKTLOG_OBJS)
 endif
 
 EXTRA_CFLAGS += $(INCS)
+EXTRA_CFLAGS += -w
 EXTRA_CFLAGS += -I$(KERNEL_SRC)/include/linux
 EXTRA_CFLAGS += -Wno-shift-count-negative
 EXTRA_CFLAGS += -Wno-shift-count-overflow
