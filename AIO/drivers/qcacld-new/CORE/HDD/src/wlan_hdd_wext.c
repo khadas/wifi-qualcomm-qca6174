@@ -3445,6 +3445,23 @@ static int __iw_get_range(struct net_device *dev, struct iw_request_info *info,
    range->scan_capa = IW_SCAN_CAPA_ESSID | IW_SCAN_CAPA_TYPE | IW_SCAN_CAPA_CHANNEL;
    #endif
 
+   /* ~5 Mb/s real (802.11b) */
+   range->throughput = 5 * 1000 * 1000;
+
+   /* percent values between 0 and 100. */
+   range->max_qual.qual = 100;
+   range->max_qual.level = 100;
+   range->max_qual.noise = 100;
+   range->max_qual.updated = 7; /* Updated all three */
+
+   range->avg_qual.qual = 92; /* > 8% missed beacons is 'bad' */
+   /* TODO: Find real 'good' to 'bad' threshol value for RSSI */
+   range->avg_qual.level = 256 - 78;
+   range->avg_qual.noise = 0;
+   range->avg_qual.updated = 7; /* Updated all three */
+
+   range->num_bitrates = WNI_CFG_SUPPORTED_RATES_11B_LEN;
+
    EXIT();
    return 0;
 }
@@ -4379,8 +4396,22 @@ static int iw_get_nick(struct net_device *dev,
  */
 static struct iw_statistics *__get_wireless_stats(struct net_device *dev)
 {
+	hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+	struct iw_statistics *pwstats = &pHddCtx->wstats;
+	int8_t signal = 0;
+	int8_t snr = 0;
+
 	ENTER();
-	return NULL;
+
+	wlan_hdd_get_rssi(pAdapter, &signal);
+	wlan_hdd_get_snr(pAdapter, &snr);
+	pwstats->qual.level = signal;
+	pwstats->qual.qual = 100;
+	pwstats->qual.noise = signal - snr;
+	pwstats->qual.updated = IW_QUAL_ALL_UPDATED;
+
+	return pwstats;
 }
 
 /**
