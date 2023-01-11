@@ -808,8 +808,9 @@ static int tx_completion_task(void *param)
 
 	device = (HIF_DEVICE *)param;
 	AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: tx completion task\n"));
+#if 0
 	set_current_state(TASK_INTERRUPTIBLE);
-
+#endif
 	while (!device->tx_completion_shutdown) {
 		if (down_interruptible(&device->sem_tx_completion) != 0) {
 			AR_DEBUG_PRINTF(ATH_DEBUG_ERROR,
