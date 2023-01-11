@@ -124,8 +124,11 @@ static inline void *hif_get_virt_ramdump_mem(unsigned long *size)
 
 	if (in_interrupt() || irqs_disabled() || in_atomic())
 		flags = GFP_ATOMIC;
-
+#if 0
 	return kzalloc(length, flags);
+#else
+	return NULL;
+#endif
 }
 
 static inline void hif_release_ramdump_mem(unsigned long *address)
