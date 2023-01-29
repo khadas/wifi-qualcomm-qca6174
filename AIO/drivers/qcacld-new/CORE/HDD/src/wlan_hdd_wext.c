@@ -1475,6 +1475,19 @@ VOS_STATUS wlan_hdd_get_snr(hdd_adapter_t *pAdapter, v_S7_t *snr)
 
 	pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
+	if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			"%s:LOGP in Progress. Ignore!!!",__func__);
+		/* return a cached value */
+		*snr = pAdapter->snr;
+		return VOS_STATUS_SUCCESS;
+	}
+	if (eConnectionState_Associated != pHddStaCtx->conn_info.connState) {
+		hddLog(LOG1, "%s: Not associated, retun cached snr", __func__);
+		*snr = pAdapter->snr;
+		return VOS_STATUS_SUCCESS;
+	}
+
 	request = hdd_request_alloc(&params);
 	if (!request) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
