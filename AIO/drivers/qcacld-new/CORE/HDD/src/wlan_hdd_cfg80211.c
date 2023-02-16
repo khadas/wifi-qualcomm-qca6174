@@ -114,15 +114,18 @@
 
 #include "wmi_unified_priv.h"
 
-#if ((LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 41)) && \
-   (defined CONFIG_AMLOGIC_KERNEL_VERSION))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 41))
+#if (CONFIG_AMLOGIC_KERNEL_VERSION < 14515) // 13515
 #include <linux/upstream_version.h>
 #if AML_KERNEL_VERSION >= 11
 #define CFG80211_ASSOC_FAILURE
 #endif
+#else //14515
+#define CFG80211_ASSOC_FAILURE
+#endif // CONFIG_AMLOGIC_KERNEL_VERSION < 14515
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
 #define CFG80211_ASSOC_FAILURE
-#endif
+#endif  //KERNEL_VERSION
 
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
