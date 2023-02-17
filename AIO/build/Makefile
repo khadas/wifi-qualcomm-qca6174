@@ -98,11 +98,22 @@ endif
 	ls -lht $(INSTALL_ROOT)/lib/modules/
 	@echo "##############################"
 
+ifeq ($(O),)
+out_dir := .
+else
+out_dir := $(O)
+endif
+include $(out_dir)/include/config/auto.conf
+
 modules_install:
 	$(MAKE) -C $(WLAN_DRIVER_TOPDIR)/qcacld-new M=$(QCACLD) -j modules_install
-	mkdir -p ${OUT_DIR}/../vendor_lib/modules
-	cp $(INSTALL_ROOT)/lib/modules/wlan.ko ${OUT_DIR}/../vendor_lib/modules/wlan_6174.ko
-	rm -vrf $(INSTALL_ROOT)
+	$(Q)mkdir -p ${out_dir}/../vendor_lib/modules
+	$(Q)if [ -z "$(CONFIG_AMLOGIC_KERNEL_VERSION)" ]; then \
+		cp $(INSTALL_ROOT)/lib/modules/wlan.ko ${out_dir}/../vendor_lib/modules/wlan_6174.ko; \
+	else \
+		cp $(INSTALL_MOD_PATH)/lib/modules/*/$(INSTALL_MOD_DIR)/wlan.ko  ${out_dir}/../vendor_lib/modules/wlan_6174.ko; \
+	fi;
+	$(Q)rm -vrf $(INSTALL_ROOT)
 
 drivers_firmware: rootfs_prep
 	@echo Install firmware
