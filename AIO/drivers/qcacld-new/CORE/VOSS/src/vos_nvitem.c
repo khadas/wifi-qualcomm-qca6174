@@ -1702,10 +1702,14 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
 		}
 
 		regd_dup = vos_copy_regd(regd);
-		if (!rtnl_is_locked()) {
-			rtnl_lock();
+
+		printk("[%s():%d]: call rtnl_trylock()\n", __func__, __LINE__);
+		if (rtnl_trylock()) {
+			printk("[%s():%d]: rtnl_trylock() ==> OK!\n", __func__, __LINE__);
 			rtnl_locked = true;
-		}
+		} else
+			printk("[%s():%d]: rtnl_trylock() ==> failed!\n", __func__, __LINE__);
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
 		ret = regulatory_set_wiphy_regd_sync(wiphy, regd_dup);
 #else
