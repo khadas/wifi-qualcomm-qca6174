@@ -85,9 +85,9 @@ drivers: rootfs_prep
 	$(MAKE) -C $(WLAN_DRIVER_TOPDIR) -j
 	mkdir -p $(INSTALL_ROOT)/lib/modules
 ifneq ($(OUT_DIR),)
-	find ${OUT_DIR}/$(QCACLD) -type f -name 'wlan.ko' -exec cp '{}' $(INSTALL_ROOT)/lib/modules/ ';'
+	find ${OUT_DIR}/$(QCACLD) -type f -name '*.ko' -exec cp '{}' $(INSTALL_ROOT)/lib/modules/ ';'
 else
-	find $(WLAN_DRIVER_TOPDIR) -type f -name 'wlan.ko' -exec cp '{}' $(INSTALL_ROOT)/lib/modules/ ';'
+	find $(WLAN_DRIVER_TOPDIR) -type f -name '*.ko' -exec cp '{}' $(INSTALL_ROOT)/lib/modules/ ';'
 endif
 ifneq ($(LLVM),)
 	llvm-strip --strip-unneeded $(INSTALL_ROOT)/lib/modules/*
@@ -111,7 +111,7 @@ modules_install:
 	$(Q)if [ -z "$(CONFIG_AMLOGIC_KERNEL_VERSION)" ]; then \
 		cp $(INSTALL_ROOT)/lib/modules/wlan.ko ${out_dir}/../vendor_lib/modules/wlan_6174.ko; \
 	else \
-		cp $(INSTALL_MOD_PATH)/lib/modules/*/$(INSTALL_MOD_DIR)/wlan.ko  ${out_dir}/../vendor_lib/modules/wlan_6174.ko; \
+		cp $(INSTALL_MOD_PATH)/lib/modules/*/$(INSTALL_MOD_DIR)/wlan*.ko  ${out_dir}/../vendor_lib/modules/wlan_6174.ko; \
 	fi;
 	$(Q)rm -vrf $(INSTALL_ROOT)
 

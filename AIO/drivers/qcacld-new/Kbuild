@@ -1902,7 +1902,7 @@ endif
 # treat the driver as the primary driver.
 ifneq ($(MODNAME), wlan)
 CHIP_NAME ?= $(MODNAME)
-CDEFINES += -DMULTI_IF_NAME=\"$(CHIP_NAME)\"
+#CDEFINES += -DMULTI_IF_NAME=\"$(CHIP_NAME)\"
 ifeq ($(CONFIG_MULTI_IF_LOG), y)
 CDEFINES += -DMULTI_IF_LOG
 endif
