@@ -113,6 +113,8 @@
 
 #include "wmi_unified_priv.h"
 
+#include <sapInternal.h>
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 /**
  * nla_strlcpy - Copy string attribute payload into a sized buffer
@@ -17995,6 +17997,151 @@ static int wlan_hdd_cfg80211_set_channel(struct wiphy *wiphy,
 	return ret;
 }
 
+static int __wlan_hdd_cfg80211_get_channel(struct wiphy *wiphy,
+					   struct wireless_dev *wdev,
+#ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
+					   unsigned int link_id,
+#endif
+					   struct cfg80211_chan_def *chandef)
+{
+	struct net_device *dev = wdev->netdev;
+	hdd_adapter_t *pAdapter = NULL;
+    hdd_context_t *pHddCtx;
+    int status;
+	bool is_legacy_phymode = false;
+	uint32_t chan_freq;
+	uint32_t ch_width;
+	int channel = 0;
+	tp_wma_handle wma;
+	struct wma_txrx_node *intr = NULL;
+
+    if( NULL == dev )
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: Called with dev = NULL.", __func__);
+        return -ENODEV;
+    }
+
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
+
+	pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    status = wlan_hdd_validate_context(pHddCtx);
+    if (0 != status)
+        return status;
+
+	if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) ||
+	    (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)) {
+	    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+
+	    if (eConnectionState_Associated != pHddStaCtx->conn_info.connState)
+			return -EINVAL;
+
+		if (pHddStaCtx->conn_info.dot11Mode < eCSR_CFG_DOT11_MODE_11N)
+			is_legacy_phymode = true;
+		wma = (tp_wma_handle) vos_get_context(VOS_MODULE_ID_WDA,
+							pHddCtx->pvosContext);
+		if (NULL == wma)
+		{
+			return -EINVAL;
+		}
+		intr = wma->interfaces;
+		ch_width = intr[pAdapter->sessionId].config.chwidth;
+		channel = pHddStaCtx->conn_info.operationChannel;
+	} else if ((pAdapter->device_mode == WLAN_HDD_SOFTAP) ||
+			(pAdapter->device_mode == WLAN_HDD_P2P_GO)) {
+		tsap_Config_t *sap_config;
+		void *pvosctx;
+		ptSapContext sapcontext;
+
+		sap_config = &((WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig);
+#ifdef WLAN_FEATURE_MBSSID
+		pvosctx = WLAN_HDD_GET_SAP_CTX_PTR(pAdapter);
+#else
+		pvosctx = pHddCtx->pvosContext;
+#endif
+		sapcontext = VOS_GET_SAP_CB(pvosctx);
+
+		if (!test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags))
+			return -EINVAL;
+
+		switch (sap_config->SapHw_mode) {
+		case eCSR_DOT11_MODE_11n:
+		case eCSR_DOT11_MODE_11n_ONLY:
+		case eCSR_DOT11_MODE_11ac:
+		case eCSR_DOT11_MODE_11ac_ONLY:
+			is_legacy_phymode = false;
+			break;
+		default:
+			is_legacy_phymode = true;
+			break;
+		}
+		ch_width = sapcontext->vht_channel_width;
+		channel = sapcontext->channel;
+	} else {
+		return -EINVAL;
+	}
+
+	chan_freq = vos_chan_to_freq(channel);
+	chandef->center_freq1 = chan_freq;
+	chandef->center_freq2 = 0;
+	chandef->chan = ieee80211_get_channel(wiphy, chan_freq);
+
+	switch (ch_width) {
+	case CH_WIDTH_20MHZ:
+		if (is_legacy_phymode)
+			chandef->width = NL80211_CHAN_WIDTH_20_NOHT;
+		else
+			chandef->width = NL80211_CHAN_WIDTH_20;
+		break;
+	case CH_WIDTH_40MHZ:
+		chandef->width = NL80211_CHAN_WIDTH_40;
+		break;
+	case CH_WIDTH_80MHZ:
+		chandef->width = NL80211_CHAN_WIDTH_80;
+		break;
+	case CH_WIDTH_5MHZ:
+		chandef->width = NL80211_CHAN_WIDTH_5;
+		break;
+	case CH_WIDTH_10MHZ:
+		chandef->width = NL80211_CHAN_WIDTH_10;
+		break;
+	default:
+		chandef->width = NL80211_CHAN_WIDTH_20;
+		break;
+	}
+#if 0
+	printk("primary_freq:%d, ch_width:%d, center_freq1:%d, center_freq2:%d",
+		  chan_freq, chandef->width, chandef->center_freq1,
+		  chandef->center_freq2);
+#endif
+	return 0;
+}
+
+/**
+ * wlan_hdd_cfg80211_get_channel() - API to process cfg80211 get_channel request
+ * @wiphy: Pointer to wiphy
+ * @wdev: Pointer to wireless device
+ * @chandef: Pointer to channel definition
+ *
+ * Return: 0 for success, non zero for failure
+ */
+static int wlan_hdd_cfg80211_get_channel(struct wiphy *wiphy,
+					 struct wireless_dev *wdev,
+					 struct cfg80211_chan_def *chandef)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_get_channel(wiphy, wdev, chandef);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 #ifdef DHCP_SERVER_OFFLOAD
 static void wlan_hdd_set_dhcp_server_offload(hdd_adapter_t *pHostapdAdapter)
 {
@@ -33514,6 +33661,9 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
     .set_default_key = wlan_hdd_cfg80211_set_default_key,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)) && !defined(WITH_BACKPORTS)
     .set_channel = wlan_hdd_cfg80211_set_channel,
+#endif
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)) && !defined(WITH_BACKPORTS)
+	.get_channel = wlan_hdd_cfg80211_get_channel,
 #endif
     .scan = wlan_hdd_cfg80211_scan,
     .connect = wlan_hdd_cfg80211_connect,
