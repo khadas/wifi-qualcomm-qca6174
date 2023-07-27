@@ -147,7 +147,9 @@ HTC_PACKET *HIFDevAllocRxBuffer(HIF_SDIO_DEVICE *pDev, size_t length)
 
     bufsize = length + HIF_SDIO_RX_DATA_OFFSET;
     headsize = sizeof(HTC_PACKET);
+    adf_os_spin_unlock_irqrestore(&pDev->pRecvTask->rx_alloc_lock);
     netbuf = adf_nbuf_alloc(NULL, bufsize + headsize, 0, 4, FALSE);
+    adf_os_spin_lock_irqsave(&pDev->pRecvTask->rx_alloc_lock);
     if (netbuf == NULL) {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
                 ("(%s)Allocate netbuf failed\n", __FUNCTION__));

@@ -525,7 +525,7 @@ int pktlog_send_per_pkt_stats_to_user(void)
 
 	while (!list_empty(&gwlan_logging.pkt_stat_filled_list)
 		&& !gwlan_logging.exit) {
-		skb_new = dev_alloc_skb(MAX_SKBMSG_LENGTH);
+		skb_new = __dev_alloc_skb(MAX_SKBMSG_LENGTH, (in_interrupt() || in_atomic()) ? GFP_ATOMIC : (GFP_KERNEL | __GFP_RETRY_MAYFAIL));
 		if (skb_new == NULL) {
 			if (!rate_limit) {
 				pr_err("%s: dev_alloc_skb() failed for msg size[%d] drop count = %u\n",
@@ -594,7 +594,7 @@ static int send_filled_buffers_to_user(void)
 	while (!list_empty(&gwlan_logging.filled_list)
 		&& !gwlan_logging.exit) {
 
-		skb = dev_alloc_skb(MAX_LOGMSG_LENGTH);
+		skb = __dev_alloc_skb(MAX_LOGMSG_LENGTH, (in_interrupt() || in_atomic()) ? GFP_ATOMIC : (GFP_KERNEL | __GFP_RETRY_MAYFAIL));
 		if (skb == NULL) {
 			if (!rate_limit) {
 				pr_err("%s: dev_alloc_skb() failed for msg size[%d] drop count = %u\n",
@@ -853,7 +853,7 @@ int wlan_logging_sock_activate_svc(int log_fe_to_console, int num_buf)
 
 
 	for (i = 0; i < MAX_PKTSTATS_BUFF; i++) {
-		gpkt_stats_buffers[i].skb = dev_alloc_skb(MAX_PKTSTATS_LENGTH);
+		gpkt_stats_buffers[i].skb = __dev_alloc_skb(MAX_PKTSTATS_LENGTH, (in_interrupt() || in_atomic()) ? GFP_ATOMIC : (GFP_KERNEL | __GFP_RETRY_MAYFAIL));
 		if (gpkt_stats_buffers[i].skb == NULL) {
 			pr_err("%s: Memory alloc failed for skb", __func__);
 			/* free previously allocated skb and return */

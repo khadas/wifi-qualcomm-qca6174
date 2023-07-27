@@ -127,7 +127,7 @@ int ptt_sock_send_msg_to_app(tAniHdr *wmsg, int radio, int src_mod, int pid)
    }
    payload_len = wmsg_length + sizeof(wnl->radio);
    tot_msg_len = NLMSG_SPACE(payload_len);
-   if ((skb = dev_alloc_skb(tot_msg_len)) == NULL) {
+   if ((skb = __dev_alloc_skb(tot_msg_len, (in_interrupt() || in_atomic()) ? GFP_ATOMIC : (GFP_KERNEL | __GFP_RETRY_MAYFAIL))) == NULL) {
       PTT_TRACE(VOS_TRACE_LEVEL_ERROR, "%s: dev_alloc_skb() failed for msg size[%d]\n",
          __func__, tot_msg_len);
       return -ENOMEM;

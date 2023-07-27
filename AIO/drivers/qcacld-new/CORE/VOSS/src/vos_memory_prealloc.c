@@ -158,7 +158,7 @@ static v_UINT_t wcnss_prealloc_init(v_VOID_t)
 	for (i = 0; i < ARRAY_SIZE(wcnss_skb_allocs); i++) {
 		wcnss_skb_allocs[i].occupied = 0;
 		wcnss_skb_allocs[i].ptr =
-				dev_alloc_skb(wcnss_skb_allocs[i].size);
+				__dev_alloc_skb(wcnss_skb_allocs[i].size, (in_interrupt() || in_atomic()) ? GFP_ATOMIC : (GFP_KERNEL | __GFP_RETRY_MAYFAIL));
 		if (wcnss_skb_allocs[i].ptr == NULL)
 			return -ENOMEM;
 	}

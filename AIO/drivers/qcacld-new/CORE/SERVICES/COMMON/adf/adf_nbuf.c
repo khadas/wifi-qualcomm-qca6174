@@ -215,9 +215,9 @@ __adf_nbuf_alloc(adf_os_device_t osdev, size_t size, int reserve, int align, int
     if (skb)
        goto skb_cb;
 
-    skb = dev_alloc_skb(size);
+    skb = __dev_alloc_skb(size, (in_interrupt() || in_atomic()) ? GFP_ATOMIC : (GFP_KERNEL | __GFP_RETRY_MAYFAIL));
 #else
-    skb = dev_alloc_skb(size);
+    skb = __dev_alloc_skb(size, (in_interrupt() || in_atomic()) ? GFP_ATOMIC : (GFP_KERNEL | __GFP_RETRY_MAYFAIL));
 
     if (skb)
        goto skb_cb;
