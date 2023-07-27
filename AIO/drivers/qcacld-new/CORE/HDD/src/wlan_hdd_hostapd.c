@@ -104,6 +104,10 @@ extern int process_wma_set_command(int sessid, int paramid,
 #include <vos_utils.h>
 #endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 41) && defined (CONFIG_AMLOGIC_KERNEL_VERSION))
+#include <linux/upstream_version.h>
+#endif
+
 #define    IS_UP(_dev) \
     (((_dev)->flags & (IFF_RUNNING|IFF_UP)) == (IFF_RUNNING|IFF_UP))
 #define    IS_UP_AUTO(_ic) \
@@ -1502,7 +1506,11 @@ void wlan_cfg80211_ch_switch_notify(struct net_device *dev,
 				    struct cfg80211_chan_def *chandef,
 				    unsigned int link_id)
 {
+#if ((defined (AML_KERNEL_VERSION) && AML_KERNEL_VERSION >= 15) || LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
+	cfg80211_ch_switch_notify(dev, chandef, link_id, 0);
+#else
 	cfg80211_ch_switch_notify(dev, chandef, link_id);
+#endif
 }
 #else
 static inline
