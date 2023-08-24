@@ -2024,7 +2024,7 @@ ol_tx_hl_queue_flush_all(struct ol_txrx_vdev_t* vdev)
 {
 	adf_os_spin_lock_bh(&vdev->bundle_queue.mutex);
 	if (vdev->bundle_queue.txq.depth != 0) {
-		adf_os_timer_cancel(&vdev->bundle_queue.timer);
+		vos_timer_stop(&vdev->bundle_queue.timer);
 		vdev->pdev->total_bundle_queue_length -=
 				vdev->bundle_queue.txq.depth;
 		adf_nbuf_tx_free(vdev->bundle_queue.txq.head, 1/*error*/);
@@ -2048,7 +2048,7 @@ ol_tx_hl_vdev_queue_append(struct ol_txrx_vdev_t* vdev, adf_nbuf_t msdu_list)
 	adf_os_spin_lock_bh(&vdev->bundle_queue.mutex);
 
 	if (!vdev->bundle_queue.txq.head) {
-		adf_os_timer_start(
+		vos_timer_start(
 			&vdev->bundle_queue.timer,
 			ol_cfg_get_bundle_timer_value(vdev->pdev->ctrl_pdev));
 		vdev->bundle_queue.txq.head = msdu_list;
@@ -2088,7 +2088,7 @@ ol_tx_hl_vdev_queue_send_all(struct ol_txrx_vdev_t* vdev, bool call_sched)
 	adf_os_spin_lock_bh(&vdev->bundle_queue.mutex);
 
 	if (vdev->bundle_queue.txq.depth != 0) {
-		adf_os_timer_cancel(&vdev->bundle_queue.timer);
+		vos_timer_stop(&vdev->bundle_queue.timer);
 		vdev->pdev->total_bundle_queue_length -=
 			vdev->bundle_queue.txq.depth;
 		msdu_list = ol_tx_hl_base(vdev, ol_tx_spec_std,
@@ -2130,18 +2130,6 @@ ol_tx_hl_pdev_queue_send_all(struct ol_txrx_pdev_t* pdev)
  *
  * Return: none
  */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
-void
-ol_tx_hl_vdev_bundle_timer(struct timer_list *t)
-{
-	adf_nbuf_t msdu_list;
-	struct ol_txrx_vdev_t *vdev = from_timer(vdev, t, bundle_queue.timer);
-
-	msdu_list = ol_tx_hl_vdev_queue_send_all(vdev, true);
-	if (msdu_list)
-		adf_nbuf_tx_free(msdu_list, 1/*error*/);
-}
-#else
 void
 ol_tx_hl_vdev_bundle_timer(void *vdev)
 {
@@ -2151,7 +2139,6 @@ ol_tx_hl_vdev_bundle_timer(void *vdev)
 	if (msdu_list)
 		adf_nbuf_tx_free(msdu_list, 1/*error*/);
 }
-#endif
 
 /**
  * ol_tx_hl_queue() - queueing logic to bundle in HL

@@ -1276,11 +1276,8 @@ ol_txrx_vdev_attach(
     adf_os_spinlock_init(&vdev->bundle_queue.mutex);
     vdev->bundle_queue.txq.head = vdev->ll_pause.txq.tail = NULL;
     vdev->bundle_queue.txq.depth = 0;
-    adf_os_timer_init(
-            pdev->osdev,
-            &vdev->bundle_queue.timer,
-            ol_tx_hl_vdev_bundle_timer,
-            vdev, ADF_DEFERRABLE_TIMER);
+    vos_timer_init(&vdev->bundle_queue.timer, VOS_TIMER_TYPE_SW,
+                   ol_tx_hl_vdev_bundle_timer, vdev);
 
     ol_txrx_vdev_init_tcp_del_ack(vdev);
 
@@ -1400,6 +1397,7 @@ ol_txrx_vdev_detach(
     }
 #endif /* defined(CONFIG_HL_SUPPORT) */
 
+    vos_timer_destroy(&vdev->bundle_queue.timer);
     adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
     adf_os_timer_cancel(&vdev->ll_pause.timer);
     vdev->ll_pause.is_q_timer_on = FALSE;

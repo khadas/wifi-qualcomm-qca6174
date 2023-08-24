@@ -125,13 +125,8 @@ void ol_tx_hl_del_ack_queue_flush_all(struct ol_txrx_vdev_t *vdev)
 #endif
 
 #ifdef QCA_SUPPORT_TXRX_HL_BUNDLE
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
-void
-ol_tx_hl_vdev_bundle_timer(struct timer_list *t);
-#else
 void
 ol_tx_hl_vdev_bundle_timer(void *vdev);
-#endif
 
 void
 ol_tx_hl_queue_flush_all(struct ol_txrx_vdev_t* vdev);
@@ -140,18 +135,10 @@ adf_nbuf_t
 ol_tx_hl_queue(struct ol_txrx_vdev_t* vdev, adf_nbuf_t msdu_list);
 
 #else
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
-static inline void ol_tx_hl_vdev_bundle_timer(struct timer_list *t)
-{
-	return;
-}
-#else
 static inline void ol_tx_hl_vdev_bundle_timer(void *vdev)
 {
 	return;
 }
-#endif
 
 static inline void
 ol_tx_hl_queue_flush_all(struct ol_txrx_vdev_t* vdev)
