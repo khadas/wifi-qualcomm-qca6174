@@ -1006,7 +1006,7 @@ static int async_task(void *param)
             AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: async task stopping\n"));
             break;
         }
-#ifdef HIF_MBOX_SLEEP_WAR
+#if 0
         /* No write request, and device state is sleep enter into sleep mode */
         if ((device->asyncreq == NULL) &&
             (adf_os_atomic_read(&device->mbox_state) == HIF_MBOX_REQUEST_TO_SLEEP_STATE)) {
@@ -1027,7 +1027,7 @@ static int async_task(void *param)
             }
             adf_os_spin_unlock_irqrestore(&device->asynclock);
             AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: async_task processing req: 0x%lX\n", (unsigned long)request));
-#ifdef HIF_MBOX_SLEEP_WAR
+#if 0
             /* write request pending for mailbox(1-3),
 	     * and the mbox state is sleep then awake the device */
             if (HIF_IS_WRITE_REQUEST_MBOX1_TO_3(request)) {
@@ -2109,7 +2109,7 @@ static A_STATUS hifDisableFunc(HIF_DEVICE *device, struct sdio_func *func)
         device->async_task = NULL;
         sema_init(&device->sem_async, 0);
     }
-#ifdef HIF_MBOX_SLEEP_WAR
+#if 0
     adf_os_timer_cancel(&device->sleep_timer);
     HIFSetMboxSleep(device, true, true, false);
 #endif

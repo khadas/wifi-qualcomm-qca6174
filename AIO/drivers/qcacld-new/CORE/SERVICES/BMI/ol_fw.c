@@ -3654,7 +3654,7 @@ ol_target_ready(struct ol_softc *scn, void *cfg_ctx)
 
 	}
 #ifdef HIF_MBOX_SLEEP_WAR
-	HIFSetMboxSleep(scn->hif_hdl, true, true, true);
+	HIFSetMboxSleep(scn->hif_hdl, false, true, true);
 #endif
 }
 #endif

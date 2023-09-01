@@ -27243,6 +27243,8 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle, int runtime_pm)
 	struct ol_softc *scn;
 	int host_credits;
 	int wmi_pending_cmds;
+	bool resend_wow_enable_cmd = TRUE;
+Resend_WMI_WOW_ENABLE_CMDID:
 #ifdef CONFIG_CNSS
 	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
 				wma->vos_context);
@@ -27316,6 +27318,11 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle, int runtime_pm)
 			wmi_get_host_credits(wma->wmi_handle),
 			wmi_get_pending_cmds(wma->wmi_handle));
 		wmi_set_target_suspend(wma->wmi_handle, FALSE);
+		if (resend_wow_enable_cmd) {
+			WMA_LOGE("Resend WMI_WOW_ENABLE_CMDID to WLAN CHIP");
+			resend_wow_enable_cmd = FALSE;
+			goto Resend_WMI_WOW_ENABLE_CMDID;
+		}
 		if (!vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
 #ifdef CONFIG_CNSS
 			if (pMac->sme.enableSelfRecovery) {
