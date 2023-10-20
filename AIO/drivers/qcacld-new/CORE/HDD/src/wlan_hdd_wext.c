@@ -989,8 +989,12 @@ void hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
 
         for (j = 0; j < wiphy->bands[i]->n_channels; j++) {
             struct ieee80211_supported_band *band = wiphy->bands[i];
-            printk("[CLD-REGDB-DEBUG]: channel %d flags 0x%x\n",
-                   band->channels[j].center_freq, band->channels[j].flags);
+            /* Debug legacy printing, printing too frequently under
+             * normal circumstances, clear it
+             *
+             * printk("[CLD-REGDB-DEBUG]: channel %d flags 0x%x\n",
+             *     band->channels[j].center_freq, band->channels[j].flags);
+             */
         }
     }
 #endif
