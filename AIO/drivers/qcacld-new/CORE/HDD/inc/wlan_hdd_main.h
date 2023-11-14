@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2021 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2343,6 +2344,20 @@ void hdd_exchange_version_and_caps(hdd_context_t *pHddCtx);
 void hdd_set_pwrparams(hdd_context_t *pHddCtx);
 void hdd_reset_pwrparams(hdd_context_t *pHddCtx);
 int wlan_hdd_validate_context(hdd_context_t *pHddCtx);
+
+/**
+ * hdd_validate_adapter() - Validate the given adapter
+ * @adapter: the adapter to validate
+ *
+ * This function validates the given adapter, and ensures that it is open.
+ *
+ * Return: Errno
+ */
+#define hdd_validate_adapter(adapter) \
+	__hdd_validate_adapter(adapter, __func__)
+
+int __hdd_validate_adapter(hdd_adapter_t *adapter, const char *func);
+
 v_BOOL_t hdd_is_valid_mac_address(const tANI_U8* pMacAddr);
 VOS_STATUS hdd_issta_p2p_clientconnected(hdd_context_t *pHddCtx);
 void hdd_ipv4_notifier_work_queue(struct work_struct *work);
@@ -2821,6 +2836,28 @@ hdd_wlan_nla_put_u64(struct sk_buff *skb, int attrtype, u64 value)
 {
 	return nla_put_u64_64bit(skb, attrtype, value,
 				 QCA_WLAN_VENDOR_ATTR_LL_STATS_PAD);
+}
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
+static inline int wlan_cfg80211_register_netdevice(struct net_device *dev)
+{
+	return cfg80211_register_netdevice(dev);
+}
+
+static inline void wlan_cfg80211_unregister_netdevice(struct net_device *dev)
+{
+	cfg80211_unregister_netdevice(dev);
+}
+#else
+static inline int wlan_cfg80211_register_netdevice(struct net_device *dev)
+{
+	return register_netdevice(dev);
+}
+
+static inline void wlan_cfg80211_unregister_netdevice(struct net_device *dev)
+{
+	unregister_netdevice(dev);
 }
 #endif
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

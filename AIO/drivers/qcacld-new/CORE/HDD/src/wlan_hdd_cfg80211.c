@@ -18010,6 +18010,118 @@ static int wlan_hdd_cfg80211_set_channel(struct wiphy *wiphy,
 	return ret;
 }
 
+static int __wlan_hdd_cfg80211_get_channel(struct wiphy *wiphy,
+					   struct wireless_dev *wdev,
+					   struct cfg80211_chan_def *chandef)
+{
+	struct net_device *dev = wdev->netdev;
+	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	hdd_context_t *hdd_ctx;
+	bool is_legacy_phymode = false;
+	uint32_t chan_freq;
+	struct wma_txrx_node *vdev;
+
+	if (hdd_validate_adapter(adapter))
+		return -EINVAL;
+
+	vdev = wma_get_interface_by_vdev_id(adapter->sessionId);
+	if (!vdev)
+		return -EINVAL;
+
+	hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	if (wlan_hdd_validate_context(hdd_ctx))
+		return -EINVAL;
+
+	if ((adapter->device_mode == WLAN_HDD_INFRA_STATION) ||
+	    (adapter->device_mode == WLAN_HDD_P2P_CLIENT)) {
+		struct hdd_station_ctx *sta_ctx;
+
+		sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+		if(!(sta_ctx->conn_info.connState == eConnectionState_Associated ||
+		    sta_ctx->conn_info.connState == eConnectionState_NdiConnected))
+			return -EINVAL;
+
+		if (sta_ctx->conn_info.dot11Mode < eCSR_CFG_DOT11_MODE_11N)
+			is_legacy_phymode = true;
+
+	} else if ((adapter->device_mode == WLAN_HDD_SOFTAP) ||
+			(adapter->device_mode == WLAN_HDD_P2P_GO)) {
+		hdd_ap_ctx_t *ap_ctx;
+
+		ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(adapter);
+
+		if (!test_bit(SOFTAP_BSS_STARTED, &adapter->event_flags))
+			return -EINVAL;
+
+		switch (ap_ctx->sapConfig.SapHw_mode) {
+		case eCSR_DOT11_MODE_11n:
+		case eCSR_DOT11_MODE_11n_ONLY:
+		case eCSR_DOT11_MODE_11ac:
+		case eCSR_DOT11_MODE_11ac_ONLY:
+			is_legacy_phymode = false;
+			break;
+		default:
+			is_legacy_phymode = true;
+			break;
+		}
+	} else {
+		return -EINVAL;
+	}
+
+	chan_freq = vdev->mhz;
+	chandef->center_freq1 = vdev->band_center_freq1;
+	chandef->center_freq2 = 0;
+	chandef->chan = ieee80211_get_channel(wiphy, chan_freq);
+
+	switch (vdev->channelwidth) {
+	case CH_WIDTH_20MHZ:
+		if (is_legacy_phymode)
+			chandef->width = NL80211_CHAN_WIDTH_20_NOHT;
+		else
+			chandef->width = NL80211_CHAN_WIDTH_20;
+		break;
+	case CH_WIDTH_40MHZ:
+		chandef->width = NL80211_CHAN_WIDTH_40;
+		break;
+	case CH_WIDTH_80MHZ:
+		chandef->width = NL80211_CHAN_WIDTH_80;
+		break;
+	default:
+		chandef->width = NL80211_CHAN_WIDTH_20;
+		break;
+	}
+
+	hddLog(VOS_TRACE_LEVEL_DEBUG,
+	       FL("primary_freq:%d, ch_width:%d, center_freq1:%d, center_freq2:%d"),
+	       chan_freq, chandef->width, chandef->center_freq1,
+	       chandef->center_freq2);
+	return 0;
+}
+
+/**
+ * wlan_hdd_cfg80211_get_channel() - API to process cfg80211 get_channel request
+ * @wiphy: Pointer to wiphy
+ * @wdev: Pointer to wireless device
+ * @chandef: Pointer to channel definition
+ *
+ * Return: 0 for success, non zero for failure
+ */
+static int wlan_hdd_cfg80211_get_channel(struct wiphy *wiphy,
+					 struct wireless_dev *wdev,
+#ifdef CFG80211_SINGLE_NETDEV_MULTI_LINK_SUPPORT
+					 unsigned int link_id,
+#endif
+					 struct cfg80211_chan_def *chandef)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_get_channel(wiphy, wdev, chandef);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 #ifdef DHCP_SERVER_OFFLOAD
 static void wlan_hdd_set_dhcp_server_offload(hdd_adapter_t *pHostapdAdapter)
 {
@@ -33579,6 +33691,9 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
     .set_default_key = wlan_hdd_cfg80211_set_default_key,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)) && !defined(WITH_BACKPORTS)
     .set_channel = wlan_hdd_cfg80211_set_channel,
+#endif
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)) && !defined(WITH_BACKPORTS)
+    .get_channel = wlan_hdd_cfg80211_get_channel,
 #endif
     .scan = wlan_hdd_cfg80211_scan,
     .connect = wlan_hdd_cfg80211_connect,

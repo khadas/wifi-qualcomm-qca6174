@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2012-2019, 2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -9664,6 +9664,32 @@ bool hdd_dfs_indicate_radar(void *context, void *param)
     return true;
 }
 
+int __hdd_validate_adapter(hdd_adapter_t *adapter, const char *func)
+{
+	if (!adapter) {
+		hddLog(LOGE, FL("adapter is null (via %s)"), func);
+		return -EINVAL;
+	}
+
+	if (adapter->magic != WLAN_HDD_ADAPTER_MAGIC) {
+		hddLog(LOGE, FL("bad adapter magic (via %s)"), func);
+		return -EINVAL;
+	}
+
+	if (!adapter->dev) {
+		hddLog(LOGE, FL("adapter net_device is null (via %s)"), func);
+		return -EINVAL;
+	}
+
+	if (!(adapter->dev->flags & IFF_UP)) {
+		hddLog(LOGE, FL("adapter '%s' is not up (via %s)"),
+			     adapter->dev->name, func);
+		return -EAGAIN;
+	}
+
+	return 0;
+}
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_is_valid_mac_address() - Validate MAC address
@@ -11377,11 +11403,7 @@ VOS_STATUS hdd_register_interface( hdd_adapter_t *pAdapter, tANI_U8 rtnl_lock_he
             return VOS_STATUS_E_FAILURE;
          }
       }
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0))
-      if (cfg80211_register_netdevice(pWlanDev))
-#else
-      if (register_netdevice(pWlanDev))
-#endif
+      if (wlan_cfg80211_register_netdevice(pWlanDev))
       {
          hddLog(VOS_TRACE_LEVEL_ERROR,"%s:Failed:register_netdev",__func__);
          return VOS_STATUS_E_FAILURE;
@@ -11763,11 +11785,7 @@ void hdd_cleanup_adapter(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
 
    if (test_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags)) {
       if (rtnl_held) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0))
-         cfg80211_unregister_netdevice(pWlanDev);
-#else
-         unregister_netdevice(pWlanDev);
-#endif
+         wlan_cfg80211_unregister_netdevice(pWlanDev);
       } else {
          unregister_netdev(pWlanDev);
       }
@@ -12643,11 +12661,7 @@ err_add_adapter_back:
 
 err_malloc_adapter_node:
 	if (rtnl_held)
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0))
-		cfg80211_unregister_netdevice(adapter->dev);
-#else
-		unregister_netdevice(adapter->dev);
-#endif
+		wlan_cfg80211_unregister_netdevice(adapter->dev);
 	else
 		unregister_netdev(adapter->dev);
 
