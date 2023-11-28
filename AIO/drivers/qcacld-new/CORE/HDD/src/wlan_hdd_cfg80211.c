@@ -33692,8 +33692,10 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)) && !defined(WITH_BACKPORTS)
     .set_channel = wlan_hdd_cfg80211_set_channel,
 #endif
+#if 0
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)) && !defined(WITH_BACKPORTS)
     .get_channel = wlan_hdd_cfg80211_get_channel,
+#endif
 #endif
     .scan = wlan_hdd_cfg80211_scan,
     .connect = wlan_hdd_cfg80211_connect,
