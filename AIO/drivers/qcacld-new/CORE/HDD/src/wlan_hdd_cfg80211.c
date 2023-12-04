@@ -114,6 +114,8 @@
 
 #include "wmi_unified_priv.h"
 
+#include "mdns_offload.h"
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 41))
 #if (CONFIG_AMLOGIC_KERNEL_VERSION < 14515) // 13515
 #include <linux/upstream_version.h>
@@ -16359,6 +16361,7 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 		vendor_command_policy(qca_vendor_peer_cfr_capture_cfg_policy,
 				      QCA_WLAN_VENDOR_ATTR_PEER_CFR_MAX)
         },
+        MDNS_OFFLOAD_VENDOR_CMD,
 };
 
 /*
@@ -33759,4 +33762,70 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
     defined(CFG80211_EXTERNAL_AUTH_SUPPORT)
     .external_auth = wlan_hdd_cfg80211_external_auth,
 #endif
+};
+
+static u32_boolean mdnsOffload_setOffloadState(u32_boolean enabled)
+{
+    printk("enter: %s\n", __func__);
+    return 0;
+}
+
+static void mdnsOffload_resetAll()
+{
+    printk("enter: %s\n", __func__);
+}
+
+static int mdnsOffload_addProtocolResponses(char *networkInterface,
+    mdnsProtocolData *offloadData)
+{
+    printk("enter: %s\n", __func__);
+    return -1;
+}
+
+static void mdnsOffload_removeProtocolResponses(int recordKey)
+{
+    printk("enter: %s\n", __func__);
+}
+
+static int mdnsOffload_getAndResetHitCounter(int recordKey)
+{
+    printk("enter: %s\n", __func__);
+    return -1;
+}
+
+static int mdnsOffload_getAndResetMissCounter()
+{
+    printk("enter: %s\n", __func__);
+    return -1;
+}
+
+static u32_boolean mdnsOffload_addToPassthroughList(char *networkInterface,
+    char *qname)
+{
+    printk("enter: %s\n", __func__);
+    return 0;
+}
+
+static void mdnsOffload_removeFromPassthroughList(char *networkInterface,
+    char *qname)
+{
+    printk("enter: %s\n", __func__);
+}
+
+static void mdnsOffload_setPassthroughBehavior(char *networkInterface,
+    passthroughBehavior behavior)
+{
+    printk("enter: %s\n", __func__);
+}
+
+MDNS_OFFLOAD_VENDOR_IMPL = {
+    .setOffloadState = mdnsOffload_setOffloadState,
+    .resetAll = mdnsOffload_resetAll,
+    .addProtocolResponses = mdnsOffload_addProtocolResponses,
+    .removeProtocolResponses = mdnsOffload_removeProtocolResponses,
+    .getAndResetHitCounter = mdnsOffload_getAndResetHitCounter,
+    .getAndResetMissCounter = mdnsOffload_getAndResetMissCounter,
+    .addToPassthroughList = mdnsOffload_addToPassthroughList,
+    .removeFromPassthroughList = mdnsOffload_removeFromPassthroughList,
+    .setPassthroughBehavior = mdnsOffload_setPassthroughBehavior,
 };
