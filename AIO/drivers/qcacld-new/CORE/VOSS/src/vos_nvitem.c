@@ -450,116 +450,9 @@ extern const sHalNv nvDefaults;
 
 const sRegulatoryChannel * regChannels = nvDefaults.tables.regDomains[0].channels;
 
-#ifdef CLD_REGDB
-static const struct ieee80211_regdomain *
-vos_search_regd(const char* alpha2)
-{
-	const struct ieee80211_regdomain *regdomain;
-	uint32_t i;
-
-	for (i = 0; i < reg_regdb_size; i++) {
-		regdomain = reg_regdb[i];
-		if (vos_mem_compare(alpha2,
-				    regdomain->alpha2,
-				    2))
-			return regdomain;
-	}
-
-	return NULL;
-}
-
-#define VOS_ONE_GHZ_IN_KHZ 1000000
-static bool
-vos_freq_in_rule_band(const struct ieee80211_freq_range *freq_range,
-		      uint32_t freq)
-{
-	uint32_t limit;
-
-	limit = freq > 45 * VOS_ONE_GHZ_IN_KHZ ?
-			20 * VOS_ONE_GHZ_IN_KHZ :
-			2 * VOS_ONE_GHZ_IN_KHZ;
-
-	if ((abs(freq - freq_range->start_freq_khz) <= limit) ||
-	    (abs(freq - freq_range->end_freq_khz) <= limit))
-		return true;
-
-	return false;
-}
-
-static bool
-vos_reg_does_bw_fit(const struct ieee80211_freq_range *freq_range,
-		    uint32_t center_freq,
-		    uint32_t bw)
-{
-	uint32_t freq_start;
-	uint32_t freq_end;
-
-	freq_start = center_freq - (bw / 2);
-	freq_end = center_freq + (bw / 2);
-
-	if ((freq_start >= freq_range->start_freq_khz) &&
-	    (freq_end <= freq_range->end_freq_khz))
-		return true;
-
-	return false;
-}
-
-static const struct ieee80211_reg_rule *
-vos_freq_reg_info(struct wiphy *wiphy,
-                  uint32_t center_freq,
-                  const struct ieee80211_regdomain *regd)
-{
-	uint32_t i;
-	const struct ieee80211_reg_rule *reg_rule;
-	const struct ieee80211_freq_range *freq_range;
-	bool freq_in_band;
-	bool bw_fit;
-
-	if (!regd)
-		return NULL;
-
-	for (i = 0; i < regd->n_reg_rules; i++) {
-		reg_rule = &regd->reg_rules[i];
-		freq_range = &reg_rule->freq_range;
-
-		freq_in_band = vos_freq_in_rule_band(freq_range,
-						     center_freq);
-		bw_fit = vos_reg_does_bw_fit(freq_range,
-					     center_freq,
-					     MHZ_TO_KHZ(20));
-
-		if (freq_in_band && bw_fit)
-			return reg_rule;
-	}
-
-	return ERR_PTR(-EINVAL);
-}
-
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
-static struct ieee80211_regdomain *
-vos_copy_regd(const struct ieee80211_regdomain *regd)
-{
-	struct ieee80211_regdomain *regd_dup;
-	uint32_t regd_dup_size;
-	uint32_t i;
-
-	regd_dup_size = sizeof(struct ieee80211_regdomain) +
-			regd->n_reg_rules * sizeof(struct ieee80211_reg_rule);
-	regd_dup = vos_mem_malloc(regd_dup_size);
-	if (!regd_dup)
-		return ERR_PTR(-ENOMEM);
-	vos_mem_zero(regd_dup, regd_dup_size);
-
-	vos_mem_copy(regd_dup, regd, sizeof(struct ieee80211_regdomain));
-	for (i = 0; i < regd->n_reg_rules; i++)
-		vos_mem_copy(&regd_dup->reg_rules[i],
-			     &regd->reg_rules[i],
-			     sizeof(struct ieee80211_reg_rule));
-
-	return regd_dup;
-}
-#endif
-#endif
+static int create_linux_regulatory_entry(struct wiphy *wiphy,
+                                         v_U8_t nBandCapability,
+                                         bool reset);
 
 static inline bool is_wwr_sku(u16 regd)
 {
@@ -1547,13 +1440,8 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
 #endif
 #ifdef CLD_REGDB
     struct regulatory_request request;
-    const struct ieee80211_regdomain *regd;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)) && defined(CLD_REGDB)
-    struct ieee80211_regdomain *regd_dup;
-    bool rtnl_locked = false;
-    int ret;
 #endif
-#endif
+    eCsrBand nBandCapability = eCSR_BAND_ALL;
 
     /* sanity checks */
     if (NULL == pRegDomain)
@@ -1687,41 +1575,10 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
             return VOS_STATUS_E_EXISTS;
         }
 #endif
-
-		/*
-		 * Solve the problem that iw reg get cannot display the country code update.
-		 */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)) && defined(CLD_REGDB)
-		wiphy->regulatory_flags = REGULATORY_WIPHY_SELF_MANAGED;
-		regd = vos_search_regd(country_code);
-		if (!regd) {
-			VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-					  "unknown alpha2 %c%c",
-					  pHddCtx->reg.alpha2[0], pHddCtx->reg.alpha2[1]);
-			return -1;
-		}
-
-		regd_dup = vos_copy_regd(regd);
-
-		printk("[%s():%d]: call rtnl_trylock()\n", __func__, __LINE__);
-		if (rtnl_trylock()) {
-			printk("[%s():%d]: rtnl_trylock() ==> OK!\n", __func__, __LINE__);
-			rtnl_locked = true;
-		} else
-			printk("[%s():%d]: rtnl_trylock() ==> failed!\n", __func__, __LINE__);
-
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
-		ret = regulatory_set_wiphy_regd_sync(wiphy, regd_dup);
-#else
-		ret = regulatory_set_wiphy_regd_sync_rtnl(wiphy, regd_dup);
-#endif
-		if (ret)
-			VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-					  "regulatory set wiphy regd err:%d", ret);
-		if (rtnl_locked)
-			rtnl_unlock();
-		vos_mem_free(regd_dup);
-#endif
+		pHddCtx->reg.alpha2[0] = country_code[0];
+		pHddCtx->reg.alpha2[1] = country_code[1];
+		sme_GetFreqBand(pHddCtx->hHal, &nBandCapability);
+		create_linux_regulatory_entry(wiphy, nBandCapability, true);
     }
 
     *pRegDomain = temp_reg_domain;
@@ -1933,6 +1790,116 @@ int vos_update_band(v_U8_t  band_capability)
 	return 0;
 }
 
+#ifdef CLD_REGDB
+static const struct ieee80211_regdomain *
+vos_search_regd(const char* alpha2)
+{
+	const struct ieee80211_regdomain *regdomain;
+	uint32_t i;
+
+	for (i = 0; i < reg_regdb_size; i++) {
+		regdomain = reg_regdb[i];
+		if (vos_mem_compare(alpha2,
+				    regdomain->alpha2,
+				    2))
+			return regdomain;
+	}
+
+	return NULL;
+}
+
+#define VOS_ONE_GHZ_IN_KHZ 1000000
+static bool
+vos_freq_in_rule_band(const struct ieee80211_freq_range *freq_range,
+		      uint32_t freq)
+{
+	uint32_t limit;
+
+	limit = freq > 45 * VOS_ONE_GHZ_IN_KHZ ?
+			20 * VOS_ONE_GHZ_IN_KHZ :
+			2 * VOS_ONE_GHZ_IN_KHZ;
+
+	if ((abs(freq - freq_range->start_freq_khz) <= limit) ||
+	    (abs(freq - freq_range->end_freq_khz) <= limit))
+		return true;
+
+	return false;
+}
+
+static bool
+vos_reg_does_bw_fit(const struct ieee80211_freq_range *freq_range,
+		    uint32_t center_freq,
+		    uint32_t bw)
+{
+	uint32_t freq_start;
+	uint32_t freq_end;
+
+	freq_start = center_freq - (bw / 2);
+	freq_end = center_freq + (bw / 2);
+
+	if ((freq_start >= freq_range->start_freq_khz) &&
+	    (freq_end <= freq_range->end_freq_khz))
+		return true;
+
+	return false;
+}
+
+static const struct ieee80211_reg_rule *
+vos_freq_reg_info(struct wiphy *wiphy,
+                  uint32_t center_freq,
+                  const struct ieee80211_regdomain *regd)
+{
+	uint32_t i;
+	const struct ieee80211_reg_rule *reg_rule;
+	const struct ieee80211_freq_range *freq_range;
+	bool freq_in_band;
+	bool bw_fit;
+
+	if (!regd)
+		return NULL;
+
+	for (i = 0; i < regd->n_reg_rules; i++) {
+		reg_rule = &regd->reg_rules[i];
+		freq_range = &reg_rule->freq_range;
+
+		freq_in_band = vos_freq_in_rule_band(freq_range,
+						     center_freq);
+		bw_fit = vos_reg_does_bw_fit(freq_range,
+					     center_freq,
+					     MHZ_TO_KHZ(20));
+
+		if (freq_in_band && bw_fit)
+			return reg_rule;
+	}
+
+	return ERR_PTR(-EINVAL);
+}
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
+static struct ieee80211_regdomain *
+vos_copy_regd(const struct ieee80211_regdomain *regd)
+{
+	struct ieee80211_regdomain *regd_dup;
+	uint32_t regd_dup_size;
+	uint32_t i;
+
+	regd_dup_size = sizeof(struct ieee80211_regdomain) +
+			regd->n_reg_rules * sizeof(struct ieee80211_reg_rule);
+	regd_dup = vos_mem_malloc(regd_dup_size);
+	if (!regd_dup)
+		return ERR_PTR(-ENOMEM);
+	vos_mem_zero(regd_dup, regd_dup_size);
+
+	vos_mem_copy(regd_dup, regd, sizeof(struct ieee80211_regdomain));
+	for (i = 0; i < regd->n_reg_rules; i++)
+		vos_mem_copy(&regd_dup->reg_rules[i],
+			     &regd->reg_rules[i],
+			     sizeof(struct ieee80211_reg_rule));
+
+	return regd_dup;
+}
+#endif
+#endif
 /* create_linux_regulatory_entry to populate internal structures from wiphy */
 static int create_linux_regulatory_entry(struct wiphy *wiphy,
                                          v_U8_t nBandCapability,
@@ -2002,10 +1969,8 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
     }
 
     regd_dup = vos_copy_regd(regd);
-    if (!rtnl_is_locked()) {
-        rtnl_lock();
+    if (rtnl_trylock())
         rtnl_locked = true;
-    }
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
     ret = regulatory_set_wiphy_regd_sync(wiphy, regd_dup);
 #else
